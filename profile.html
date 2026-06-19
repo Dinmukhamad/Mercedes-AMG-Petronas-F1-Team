@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Личный кабинет — F1 Statistics Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/index.html" class="navbar-logo">
+      <div class="logo-mark">F1</div>
+      <span class="logo-text">F1 <span>Stats</span></span>
+    </a>
+    <div class="navbar-nav">
+      <a href="/index.html"        class="nav-link">Главная</a>
+      <a href="/drivers.html"      class="nav-link">Гонщики</a>
+      <a href="/constructors.html" class="nav-link">Команды</a>
+      <a href="/races.html"        class="nav-link">Гонки</a>
+      <a href="/videos.html"       class="nav-link">Видео</a>
+      <a href="/gallery.html"      class="nav-link">Галерея</a>
+    </div>
+    <div class="navbar-actions">
+      <select class="season-select" id="nav-season-select"></select>
+      <div id="navbar-auth"></div>
+    </div>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <a href="/index.html" class="nav-link">Главная</a>
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <div class="container">
+      <p class="page-breadcrumb"><a href="/index.html">Главная</a> <span class="sep">›</span> Личный кабинет</p>
+      <h1 class="page-title">Личный кабинет</h1>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="container" style="max-width:900px;">
+
+      <!-- Profile card -->
+      <div class="card mb-32" id="profile-card">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="profile-tabs">
+        <button class="tab-btn active" data-tab="favDrivers">Избранные гонщики</button>
+        <button class="tab-btn"        data-tab="favTeams">Избранные команды</button>
+        <button class="tab-btn"        data-tab="settings">Настройки</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-favDrivers">
+        <div id="fav-drivers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-favTeams">
+        <div id="fav-teams-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-settings">
+        <div class="card" style="max-width:480px;">
+          <h3 style="font-family:var(--font-display);font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:20px;">Изменить пароль</h3>
+          <form id="change-password-form">
+            <div class="form-group">
+              <label class="form-label">Текущий пароль</label>
+              <input type="password" class="form-control" id="current-password" placeholder="••••••••">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Новый пароль</label>
+              <input type="password" class="form-control" id="new-password" placeholder="Минимум 6 символов">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Повторите новый пароль</label>
+              <input type="password" class="form-control" id="confirm-new-password" placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom"><span>© 2025–2026 F1 Statistics Dashboard</span></div>
+  </div>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/favorites.js"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация — F1 Statistics Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="auth-page">
+  <div style="position:fixed;inset:0;background-image:linear-gradient(rgba(0,210,190,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,210,190,0.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;"></div>
+
+  <div class="auth-card">
+    <div class="auth-header">
+      <a href="/index.html" class="navbar-logo" style="justify-content:center;margin-bottom:20px;">
+        <div class="logo-mark">F1</div>
+        <span class="logo-text">F1 <span>Stats</span></span>
+      </a>
+      <h1 class="auth-title">Регистрация</h1>
+      <p class="auth-subtitle">Создайте аккаунт, чтобы следить за любимыми пилотами</p>
+    </div>
+
+    <form id="register-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="username">Имя пользователя</label>
+        <input type="text" class="form-control" id="username" name="username"
+               placeholder="max_verstappen" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <input type="email" class="form-control" id="email" name="email"
+               placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">Пароль</label>
+        <div style="position:relative;">
+          <input type="password" class="form-control" id="password" name="password"
+                 placeholder="Минимум 6 символов" required autocomplete="new-password">
+          <button type="button" onclick="togglePasswordVisibility('password')"
+            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.85rem;">
+            👁
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password_confirmation">Повторите пароль</label>
+        <div style="position:relative;">
+          <input type="password" class="form-control" id="password_confirmation" name="password_confirmation"
+                 placeholder="••••••••" required autocomplete="new-password">
+          <button type="button" onclick="togglePasswordVisibility('password_confirmation')"
+            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.85rem;">
+            👁
+          </button>
+        </div>
+      </div>
+
+      <!-- Password strength -->
+      <div id="password-strength" style="margin-top:-12px;margin-bottom:16px;"></div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px;">
+        Создать аккаунт
+      </button>
+    </form>
+
+    <div class="auth-footer-text">
+      Уже есть аккаунт? <a href="/login.html">Войти</a>
+    </div>
+    <div style="text-align:center;margin-top:12px;">
+      <a href="/index.html" style="font-size:.8rem;color:var(--text-muted);">← На главную</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+function togglePasswordVisibility(inputId) {
+  const input = document.getElementById(inputId);
+  if (input) input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+// Password strength indicator
+document.getElementById('password')?.addEventListener('input', function () {
+  const val = this.value;
+  const el  = document.getElementById('password-strength');
+  if (!el || !val) { el.innerHTML = ''; return; }
+
+  let strength = 0;
+  if (val.length >= 6)  strength++;
+  if (val.length >= 10) strength++;
+  if (/[A-Z]/.test(val)) strength++;
+  if (/[0-9]/.test(val)) strength++;
+  if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+  const labels = ['Слабый', 'Слабый', 'Средний', 'Хороший', 'Сильный', 'Отличный'];
+  const colors = ['#FF5D5D', '#FF5D5D', '#F0A500', '#D9B85F', '#4CAF82', '#00D2BE'];
+
+  el.innerHTML = `
+    <div style="display:flex;gap:3px;margin-bottom:4px;">
+      ${[1,2,3,4,5].map(i => `<div style="flex:1;height:3px;border-radius:2px;background:${i <= strength ? colors[strength] : 'var(--border)'};transition:background .2s;"></div>`).join('')}
+    </div>
+    <div style="font-size:.75rem;color:${colors[strength]};">${labels[strength]}</div>
+  `;
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  initRegisterPage();
+});
+</script>
+</body>
+</html>

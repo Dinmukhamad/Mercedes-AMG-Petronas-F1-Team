@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Гонки — F1 Statistics Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/index.html" class="navbar-logo">
+      <div class="logo-mark">F1</div>
+      <span class="logo-text">F1 <span>Stats</span></span>
+    </a>
+    <div class="navbar-nav">
+      <a href="/index.html"        class="nav-link">Главная</a>
+      <a href="/drivers.html"      class="nav-link">Гонщики</a>
+      <a href="/constructors.html" class="nav-link">Команды</a>
+      <a href="/races.html"        class="nav-link active">Гонки</a>
+      <a href="/videos.html"       class="nav-link">Видео</a>
+      <a href="/gallery.html"      class="nav-link">Галерея</a>
+    </div>
+    <div class="navbar-actions">
+      <select class="season-select" id="nav-season-select"></select>
+      <div id="navbar-auth"></div>
+    </div>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <a href="/index.html"        class="nav-link">Главная</a>
+  <a href="/drivers.html"      class="nav-link">Гонщики</a>
+  <a href="/constructors.html" class="nav-link">Команды</a>
+  <a href="/races.html"        class="nav-link">Гонки</a>
+  <a href="/videos.html"       class="nav-link">Видео</a>
+  <a href="/gallery.html"      class="nav-link">Галерея</a>
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <div class="container">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+          <p class="page-breadcrumb"><a href="/index.html">Главная</a> <span class="sep">›</span> Гонки</p>
+          <h1 class="page-title">Календарь Гран-при</h1>
+        </div>
+        <select class="season-select" id="page-season-select"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="container">
+      <div class="filter-bar">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="form-control" id="search-race" placeholder="Поиск по гонке...">
+        </div>
+        <select class="form-control" id="filter-country"><option value="">Все страны</option></select>
+        <select class="form-control" id="filter-status">
+          <option value="">Все статусы</option>
+          <option value="upcoming">Ожидается</option>
+          <option value="ongoing">Идёт сейчас</option>
+          <option value="finished">Завершена</option>
+          <option value="cancelled">Отменена</option>
+        </select>
+      </div>
+
+      <div class="races-grid" id="races-grid">
+        <div class="loading-spinner"><div class="spinner"></div><span>Загрузка...</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom">
+      <span>© 2025–2026 F1 Statistics Dashboard</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/races.js"></script>
+</body>
+</html>

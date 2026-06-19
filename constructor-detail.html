@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Команда — F1 Statistics Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/index.html" class="navbar-logo">
+      <div class="logo-mark">F1</div>
+      <span class="logo-text">F1 <span>Stats</span></span>
+    </a>
+    <div class="navbar-nav">
+      <a href="/index.html"        class="nav-link">Главная</a>
+      <a href="/drivers.html"      class="nav-link">Гонщики</a>
+      <a href="/constructors.html" class="nav-link active">Команды</a>
+      <a href="/races.html"        class="nav-link">Гонки</a>
+      <a href="/videos.html"       class="nav-link">Видео</a>
+      <a href="/gallery.html"      class="nav-link">Галерея</a>
+    </div>
+    <div class="navbar-actions">
+      <select class="season-select" id="nav-season-select"></select>
+      <div id="navbar-auth"></div>
+    </div>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <a href="/index.html"        class="nav-link">Главная</a>
+  <a href="/constructors.html" class="nav-link">Команды</a>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- Hero -->
+  <div id="constructor-hero"></div>
+
+  <div class="section">
+    <div class="container">
+
+      <div class="tabs" id="team-tabs">
+        <button class="tab-btn active" data-tab="overview">Обзор</button>
+        <button class="tab-btn"        data-tab="drivers">Пилоты</button>
+        <button class="tab-btn"        data-tab="results">Результаты</button>
+        <button class="tab-btn"        data-tab="charts">Графики</button>
+      </div>
+
+      <!-- Overview: stat cards -->
+      <div class="tab-panel active" id="tab-overview">
+        <div class="stats-grid" id="team-stat-cards"></div>
+      </div>
+
+      <!-- Drivers -->
+      <div class="tab-panel" id="tab-drivers">
+        <div id="team-drivers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
+      </div>
+
+      <!-- Results -->
+      <div class="tab-panel" id="tab-results">
+        <div class="table-wrapper" id="team-results-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="tab-panel" id="tab-charts">
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title">Накопленные очки команды</div>
+            <div class="chart-container"><canvas id="chart-team-points"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Сравнение пилотов (очки)</div>
+            <div class="chart-container"><canvas id="chart-teammates"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom"><span>© 2025–2026 F1 Statistics Dashboard</span></div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/charts.js"></script>
+<script>
+// ===== constructor-detail.js inlined =====
+
+async function initConstructorDetail() {
+  const constructorId = getQueryParam('id');
+  if (!constructorId) { window.location.href = '/constructors.html'; return; }
+
+  initTabs(document.getElementById('team-tabs'));
+  const season = SeasonState.get();
+  await loadConstructorDetail(constructorId, season);
+  window.addEventListener('seasonChanged', ({ detail }) => loadConstructorDetail(constructorId, detail.year));
+}
+
+async function loadConstructorDetail(constructorId, season) {
+  const heroEl = document.getElementById('constructor-hero');
+  showLoading(heroEl);
+  try {
+    const [constructor, stats] = await Promise.all([
+      Constructors.get(constructorId),
+      Constructors.stats(constructorId, season).catch(() => null),
+    ]);
+
+    renderConstructorHero(heroEl, constructor, stats);
+    renderTeamStatCards(constructor, stats);
+    renderTeamDrivers(constructor, stats);
+    if (stats?.race_results?.length) {
+      renderTeamResults(stats.race_results);
+      renderConstructorPointsChart('chart-team-points', stats.race_results);
+    }
+    if (stats?.drivers?.length >= 2) {
+      const [d1, d2] = stats.drivers;
+      const labels   = (stats.race_results || []).map(r => r.race?.round || '');
+      const data1    = (stats.race_results || []).filter(r => r.driver_id === d1.id).map(r => r.points || 0);
+      const data2    = (stats.race_results || []).filter(r => r.driver_id === d2.id).map(r => r.points || 0);
+      if (data1.length && data2.length) {
+        renderTeammatesChart('chart-teammates', d1.last_name, d2.last_name,
+          labels.slice(0, Math.max(data1.length, data2.length)), data1, data2);
+      }
+    }
+  } catch (err) {
+    showError(heroEl, err.message);
+  }
+}
+
+function renderConstructorHero(container, con, stats) {
+  const name    = con.name || '—';
+  const logo    = con.logo_url || '';
+  const carImg  = con.car_image_url || '';
+  const pos     = stats?.position || '—';
+  const points  = stats?.points || 0;
+  const wins    = stats?.wins || 0;
+  const podiums = stats?.podiums || 0;
+
+  container.innerHTML = `
+    <section style="background:linear-gradient(135deg,var(--bg-secondary),var(--bg-graphite));border-bottom:1px solid var(--border);padding:40px 0;">
+      <div class="container">
+        <p class="page-breadcrumb" style="margin-bottom:16px;">
+          <a href="/index.html">Главная</a> <span class="sep">›</span>
+          <a href="/constructors.html">Команды</a> <span class="sep">›</span>
+          ${escapeHtml(name)}
+        </p>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+            ${logo ? `<img src="${escapeHtml(logo)}" alt="${escapeHtml(name)}" style="width:96px;height:96px;object-fit:contain;" onerror="this.style.display='none'">` : `<div style="width:96px;height:96px;background:var(--bg-graphite);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:2rem;color:var(--teal);">${name.charAt(0)}</div>`}
+            ${carImg ? `<img src="${escapeHtml(carImg)}" alt="car" style="height:36px;object-fit:contain;" onerror="this.style.display='none'">` : ''}
+          </div>
+          <div>
+            <h1 style="font-family:var(--font-display);font-size:clamp(1.8rem,4vw,3rem);font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin-bottom:10px;">${escapeHtml(name)}</h1>
+            <div style="display:flex;gap:16px;color:var(--text-secondary);font-size:.85rem;margin-bottom:20px;flex-wrap:wrap;">
+              ${con.nationality ? `<span>🌍 ${escapeHtml(con.nationality)}</span>` : ''}
+              ${con.base ? `<span>📍 ${escapeHtml(con.base)}</span>` : ''}
+              ${con.founded ? `<span>📅 Основана: ${con.founded}</span>` : ''}
+              ${con.car_name ? `<span>🏎 ${escapeHtml(con.car_name)}</span>` : ''}
+              ${con.engine ? `<span>⚙️ ${escapeHtml(con.engine)}</span>` : ''}
+            </div>
+            <div class="driver-stats-row">
+              <div class="driver-stat"><div class="driver-stat-value" style="color:var(--teal)">${pos}</div><div class="driver-stat-label">Место</div></div>
+              <div class="driver-stat"><div class="driver-stat-value">${points}</div><div class="driver-stat-label">Очков</div></div>
+              <div class="driver-stat"><div class="driver-stat-value">${wins}</div><div class="driver-stat-label">Побед</div></div>
+              <div class="driver-stat"><div class="driver-stat-value">${podiums}</div><div class="driver-stat-label">Подиумов</div></div>
+            </div>
+            <div style="margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              ${AuthState.isLoggedIn() ? `<button id="fav-team-btn" class="btn btn-secondary btn-sm" onclick="handleFavTeam(${con.id})">★ В избранное</button>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+
+  if (AuthState.isLoggedIn()) {
+    Favorites.list().then(favs => {
+      const isFav = favs?.some(f => f.constructor_id === con.id);
+      const btn = document.getElementById('fav-team-btn');
+      if (btn && isFav) { btn.classList.add('active'); btn.textContent = '★ В избранном'; }
+    }).catch(() => {});
+  }
+}
+
+async function handleFavTeam(constructorId) {
+  const btn = document.getElementById('fav-team-btn');
+  await toggleFavoriteConstructor(constructorId, btn);
+}
+
+function renderTeamStatCards(con, stats) {
+  const container = document.getElementById('team-stat-cards');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Очки в сезоне</div><div class="stat-value teal">${stats?.points || 0}</div></div>
+    <div class="stat-card"><div class="stat-label">Место в зачёте</div><div class="stat-value">${stats?.position || '—'}</div></div>
+    <div class="stat-card"><div class="stat-label">Победы</div><div class="stat-value">${stats?.wins || 0}</div></div>
+    <div class="stat-card"><div class="stat-label">Подиумы</div><div class="stat-value">${stats?.podiums || 0}</div></div>
+    <div class="stat-card"><div class="stat-label">Поул-позиции</div><div class="stat-value">${stats?.poles || 0}</div></div>
+    <div class="stat-card"><div class="stat-label">Финиши в очках</div><div class="stat-value">${stats?.points_finishes || 0}</div></div>
+  `;
+}
+
+function renderTeamDrivers(con, stats) {
+  const container = document.getElementById('team-drivers-grid');
+  if (!container) return;
+  const drivers = stats?.drivers || con.drivers || [];
+  if (!drivers.length) { showEmpty(container, 'Пилоты не найдены'); return; }
+  container.innerHTML = drivers.map(d => {
+    const name  = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+    const photo = d.photo_url || '';
+    const pts   = d.points || 0;
+    const pos   = d.position || '—';
+    return `
+      <a href="/driver-detail.html?id=${d.id}" class="card" style="text-decoration:none;display:flex;gap:16px;align-items:center;">
+        ${photo ? `<img src="${escapeHtml(photo)}" alt="${escapeHtml(name)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--border);" onerror="this.style.display='none'">` : `<div style="width:72px;height:72px;border-radius:50%;background:var(--bg-graphite);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:1.6rem;color:var(--teal);flex-shrink:0;">${name.charAt(0)}</div>`}
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;font-size:1rem;margin-bottom:4px;">${escapeHtml(name)}</div>
+          <div style="font-size:.8rem;color:var(--text-secondary);">${escapeHtml(d.nationality || '')}</div>
+          <div style="margin-top:8px;display:flex;gap:16px;">
+            <div><div style="font-family:var(--font-display);font-weight:700;color:var(--teal);">${pts}</div><div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);">Очков</div></div>
+            <div><div style="font-family:var(--font-display);font-weight:700;">${pos}</div><div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);">Место</div></div>
+          </div>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+function renderTeamResults(results) {
+  const container = document.getElementById('team-results-table');
+  if (!container) return;
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Этап</th><th>Гонка</th><th>Пилот</th>
+          <th class="text-right">Старт</th><th class="text-right">Финиш</th>
+          <th class="text-right">Очки</th><th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${results.map(r => `
+          <tr class="${getRowHighlight(r.position)}">
+            <td class="muted">${r.race?.round || '—'}</td>
+            <td><a href="/race-detail.html?id=${r.race_id}" style="color:var(--text-primary);">${escapeHtml(r.race?.name || '—')}</a></td>
+            <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-secondary);font-size:.85rem;">${escapeHtml(r.driver ? r.driver.first_name + ' ' + r.driver.last_name : '—')}</a></td>
+            <td class="text-right muted">${r.grid_position || '—'}</td>
+            <td class="text-right"><span class="${getPositionClass(r.position)}">${r.position || 'DNF'}</span></td>
+            <td class="text-right number" style="color:var(--teal)">${r.points || 0}</td>
+            <td class="muted" style="font-size:.8rem;">${escapeHtml(r.status || '—')}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.addEventListener('DOMContentLoaded', initConstructorDetail);
+</script>
+</body>
+</html>
