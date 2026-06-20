@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Гонка — F1 Statistics Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/index.html" class="navbar-logo">
+      <div class="logo-mark">F1</div>
+      <span class="logo-text">F1 <span>Stats</span></span>
+    </a>
+    <div class="navbar-nav">
+      <a href="/index.html"        class="nav-link">Главная</a>
+      <a href="/drivers.html"      class="nav-link">Гонщики</a>
+      <a href="/constructors.html" class="nav-link">Команды</a>
+      <a href="/races.html"        class="nav-link active">Гонки</a>
+      <a href="/videos.html"       class="nav-link">Видео</a>
+      <a href="/gallery.html"      class="nav-link">Галерея</a>
+    </div>
+    <div class="navbar-actions">
+      <select class="season-select" id="nav-season-select"></select>
+      <div id="navbar-auth"></div>
+    </div>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <a href="/index.html"   class="nav-link">Главная</a>
+  <a href="/races.html"   class="nav-link">Гонки</a>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- Race header -->
+  <div id="race-header"></div>
+
+  <div class="section">
+    <div class="container">
+
+      <!-- Top 3 podium -->
+      <div id="race-podium" class="mb-32"></div>
+
+      <!-- Tabs -->
+      <div class="tabs" id="race-tabs">
+        <button class="tab-btn active" data-tab="race">Гонка</button>
+        <button class="tab-btn"        data-tab="qualifying">Квалификация</button>
+        <button class="tab-btn"        data-tab="fp1">Практика 1</button>
+        <button class="tab-btn"        data-tab="fp2">Практика 2</button>
+        <button class="tab-btn"        data-tab="fp3">Практика 3</button>
+        <button class="tab-btn"        data-tab="videos">Видео</button>
+        <button class="tab-btn"        data-tab="gallery">Галерея</button>
+      </div>
+
+      <!-- Race results -->
+      <div class="tab-panel active" id="tab-race">
+        <div class="charts-grid mb-24">
+          <div class="chart-card">
+            <div class="chart-title">Распределение очков</div>
+            <div class="chart-container"><canvas id="chart-race-points"></canvas></div>
+          </div>
+        </div>
+        <div class="table-wrapper" id="race-results-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Qualifying -->
+      <div class="tab-panel" id="tab-qualifying">
+        <div class="table-wrapper" id="qualifying-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- FP1 -->
+      <div class="tab-panel" id="tab-fp1">
+        <div class="table-wrapper" id="fp1-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- FP2 -->
+      <div class="tab-panel" id="tab-fp2">
+        <div class="table-wrapper" id="fp2-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- FP3 -->
+      <div class="tab-panel" id="tab-fp3">
+        <div class="table-wrapper" id="fp3-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Videos -->
+      <div class="tab-panel" id="tab-videos">
+        <div class="video-grid" id="race-videos-grid">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Gallery -->
+      <div class="tab-panel" id="tab-gallery">
+        <div class="gallery-grid" id="race-gallery-grid">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Video modal -->
+<div class="video-modal-overlay" id="video-modal-overlay" onclick="if(event.target===this){closeVideoModal();}">
+  <div class="video-modal">
+    <div class="video-modal-header">
+      <span class="video-modal-title" id="video-modal-title"></span>
+      <button class="btn btn-ghost btn-sm" onclick="closeVideoModal()">✕</button>
+    </div>
+    <div class="video-iframe-wrap"><iframe id="video-modal-iframe" allowfullscreen></iframe></div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox-overlay" class="lightbox-overlay" onclick="if(event.target===this)closeLightbox()">
+  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="">
+  <div class="lightbox-info" id="lightbox-info"></div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom"><span>© 2025–2026 F1 Statistics Dashboard</span></div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/charts.js"></script>
+<script>
+// ========= race-detail.js inlined =========
+
+let _currentRaceId = null;
+
+async function initRaceDetail() {
+  _currentRaceId = getQueryParam('id');
+  if (!_currentRaceId) { window.location.href = '/races.html'; return; }
+
+  const tabs = document.getElementById('race-tabs');
+  initTabs(tabs);
+
+  // Lazy load session data on tab click
+  tabs.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => onTabChange(btn.dataset.tab));
+  });
+
+  await loadRaceData(_currentRaceId);
+}
+
+async function loadRaceData(raceId) {
+  try {
+    const race = await Races.get(raceId);
+    renderRaceHeader(race);
+    // Load race results immediately (default tab)
+    await loadRaceResults(raceId);
+  } catch (err) {
+    showError(document.getElementById('race-header'), err.message);
+  }
+}
+
+function renderRaceHeader(race) {
+  const header = document.getElementById('race-header');
+  header.innerHTML = `
+    <div style="background:linear-gradient(135deg,var(--bg-secondary),var(--bg-graphite));border-bottom:1px solid var(--border);padding:32px 0;">
+      <div class="container">
+        <p class="page-breadcrumb" style="margin-bottom:12px;">
+          <a href="/index.html">Главная</a> <span class="sep">›</span>
+          <a href="/races.html">Гонки</a> <span class="sep">›</span>
+          ${escapeHtml(race.name)}
+        </p>
+        ${race.banner_url ? `<img src="${escapeHtml(race.banner_url)}" alt="" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--radius-lg);margin-bottom:20px;" onerror="this.style.display='none'">` : ''}
+        <div style="display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:6px;">Этап ${race.round}</div>
+            <h1 style="font-family:var(--font-display);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;text-transform:uppercase;margin-bottom:12px;">${escapeHtml(race.name)}</h1>
+            <div style="display:flex;flex-wrap:wrap;gap:16px;color:var(--text-secondary);font-size:.85rem;margin-bottom:16px;">
+              <span>📍 ${escapeHtml(race.city || '')}${race.country ? ', ' + race.country : ''}</span>
+              <span>🏟 ${escapeHtml(race.circuit_name || '')}</span>
+              <span>📅 ${formatDate(race.race_date)}</span>
+              ${race.race_date ? `<span>🕐 ${formatTime(race.race_date)}</span>` : ''}
+            </div>
+            ${getRaceStatusBadge(race.status)}
+          </div>
+          ${race.weather ? `
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;min-width:140px;">
+              <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:6px;">Погода</div>
+              <div style="font-size:1.4rem;">${escapeHtml(race.weather)}</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadRaceResults(raceId) {
+  const container = document.getElementById('race-results-table');
+  try {
+    const results = await Races.results(raceId);
+    if (!results?.length) { showEmpty(container, 'Результаты гонки ещё не добавлены'); return; }
+
+    // Podium
+    renderRacePodium(results.slice(0, 3));
+    renderRacePointsChart('chart-race-points', results);
+    renderResultsTable(container, results);
+  } catch (err) {
+    showError(container, err.message);
+  }
+}
+
+function renderRacePodium(top3) {
+  const container = document.getElementById('race-podium');
+  if (!container || !top3?.length) return;
+
+  const order = [top3[1], top3[0], top3[2]].filter(Boolean);
+  container.innerHTML = `
+    <div class="podium-row">
+      ${order.map(r => {
+        const pos  = r.position;
+        const cls  = ['','p1','p2','p3'][pos] || '';
+        const name = r.driver ? `${r.driver.first_name} ${r.driver.last_name}` : '—';
+        const team = r.constructor?.name || '—';
+        const photo = r.driver?.photo_url || '';
+        return `
+          <div class="podium-card ${cls}">
+            <div class="podium-rank">${pos}</div>
+            ${photo ? `<img src="${escapeHtml(photo)}" class="podium-photo" alt="" onerror="this.style.display='none'">` : `<div class="podium-photo" style="display:flex;align-items:center;justify-content:center;background:var(--bg-graphite);font-family:var(--font-display);font-weight:700;font-size:1.4rem;color:var(--teal);">${name.charAt(0)}</div>`}
+            <div class="podium-name">${escapeHtml(name)}</div>
+            <div class="podium-team">${escapeHtml(team)}</div>
+            ${r.race_time ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:4px;">${escapeHtml(r.race_time)}</div>` : ''}
+            <div class="podium-points">${r.points} <span>очков</span></div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderResultsTable(container, results) {
+  const fastestLapDriver = results.find(r => r.fastest_lap);
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Поз.</th>
+          <th>Гонщик</th>
+          <th>Команда</th>
+          <th class="text-right">Стартовая</th>
+          <th class="text-right">Круги</th>
+          <th>Статус</th>
+          <th class="text-right">Очки</th>
+          <th>Быстрый круг</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${results.map(r => {
+          const name     = r.driver ? `${r.driver.first_name} ${r.driver.last_name}` : '—';
+          const team     = r.constructor?.name || '—';
+          const isFastest = r.fastest_lap && r.fastest_lap === fastestLapDriver?.fastest_lap;
+          return `
+            <tr class="${getRowHighlight(r.position)} ${isFastest ? 'fastest-lap-row' : ''}">
+              <td class="table-position"><span class="${getPositionClass(r.position)}">${r.position || 'DNF'}</span></td>
+              <td>
+                <div class="driver-cell">
+                  ${r.driver?.photo_url ? `<img src="${escapeHtml(r.driver.photo_url)}" class="driver-avatar driver-avatar-sm" alt="" onerror="this.style.display='none'">` : ''}
+                  <a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-primary);font-weight:600;">${escapeHtml(name)}</a>
+                </div>
+              </td>
+              <td class="muted">${escapeHtml(team)}</td>
+              <td class="text-right muted">${r.grid_position || '—'}</td>
+              <td class="text-right muted">${r.laps || '—'}</td>
+              <td class="muted" style="font-size:.8rem;">${escapeHtml(r.status || '—')}</td>
+              <td class="text-right number" style="color:var(--teal)">${r.points || 0}</td>
+              <td>${isFastest ? `<span class="fastest-lap-badge">⚡ ${escapeHtml(r.fastest_lap)}</span>` : (r.fastest_lap ? escapeHtml(r.fastest_lap) : '—')}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+async function loadQualifying(raceId) {
+  const container = document.getElementById('qualifying-table');
+  showLoading(container);
+  try {
+    const results = await Races.qualifying(raceId);
+    if (!results?.length) { showEmpty(container, 'Данные квалификации не найдены'); return; }
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>Поз.</th><th>Гонщик</th><th>Команда</th><th>Q1</th><th>Q2</th><th>Q3</th></tr></thead>
+        <tbody>
+          ${results.map(r => `
+            <tr class="${getRowHighlight(r.position)}">
+              <td class="table-position"><span class="${getPositionClass(r.position)}">${r.position}</span></td>
+              <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-primary);font-weight:600;">${escapeHtml(r.driver ? r.driver.first_name + ' ' + r.driver.last_name : '—')}</a></td>
+              <td class="muted">${escapeHtml(r.constructor?.name || '—')}</td>
+              <td class="muted number" style="font-size:.82rem;">${r.q1 || '—'}</td>
+              <td class="muted number" style="font-size:.82rem;">${r.q2 || '—'}</td>
+              <td class="number" style="font-size:.82rem;color:var(--teal);">${r.q3 || '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) { showError(container, err.message); }
+}
+
+async function loadPractice(raceId, session) {
+  const containerId = `fp${session.replace('FP','')}-table`;
+  const container   = document.getElementById(containerId);
+  if (!container) return;
+  showLoading(container);
+  try {
+    const allPractice = await Races.practice(raceId);
+    const results     = (allPractice || []).filter(r => r.session_type === session);
+    if (!results.length) { showEmpty(container, `Данные ${session} не найдены`); return; }
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>Поз.</th><th>Гонщик</th><th>Команда</th><th class="text-right">Лучший круг</th></tr></thead>
+        <tbody>
+          ${results.map(r => `
+            <tr class="${getRowHighlight(r.position)}">
+              <td class="table-position"><span class="${getPositionClass(r.position)}">${r.position}</span></td>
+              <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-primary);font-weight:600;">${escapeHtml(r.driver ? r.driver.first_name + ' ' + r.driver.last_name : '—')}</a></td>
+              <td class="muted">${escapeHtml(r.constructor?.name || '—')}</td>
+              <td class="text-right number" style="color:var(--teal);">${r.lap_time || '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) { showError(container, err.message); }
+}
+
+async function loadRaceVideos(raceId) {
+  const container = document.getElementById('race-videos-grid');
+  try {
+    const videos = await Races.videos(raceId);
+    if (!videos?.length) { showEmpty(container, 'Видео не добавлены', '', '▶'); return; }
+    container.innerHTML = videos.map(v => {
+      const thumb = v.thumbnail_url ? `<img src="${escapeHtml(v.thumbnail_url)}" alt="${escapeHtml(v.title)}" loading="lazy">` : `<div style="width:100%;height:100%;background:var(--bg-graphite);display:flex;align-items:center;justify-content:center;font-size:2rem;">▶</div>`;
+      return `
+        <div class="video-card" onclick="openVideoModal('${escapeHtml(v.embed_url || v.video_url || '')}', '${escapeHtml(v.title || '')}')">
+          <div class="video-thumb">${thumb}<div class="video-play-btn">▶</div></div>
+          <div class="video-body">
+            <div class="video-title">${escapeHtml(v.title)}</div>
+            <div class="video-meta">${v.published_at ? formatDateShort(v.published_at) : ''} ${v.source ? '· ' + escapeHtml(v.source) : ''}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) { showError(container, err.message); }
+}
+
+function openVideoModal(url, title) {
+  if (!url) return;
+  const overlay = document.getElementById('video-modal-overlay');
+  document.getElementById('video-modal-iframe').src = url;
+  document.getElementById('video-modal-title').textContent = title;
+  overlay.classList.add('open');
+}
+
+function closeVideoModal() {
+  const overlay = document.getElementById('video-modal-overlay');
+  overlay?.classList.remove('open');
+  const iframe = document.getElementById('video-modal-iframe');
+  if (iframe) iframe.src = '';
+}
+
+async function loadRaceGallery(raceId) {
+  const container = document.getElementById('race-gallery-grid');
+  try {
+    const photos = await Races.gallery(raceId);
+    if (!photos?.length) { showEmpty(container, 'Фотографии не добавлены', '', '📷'); return; }
+    container.innerHTML = photos.map(p => `
+      <div class="gallery-item" onclick="openLightbox('${escapeHtml(p.image_url)}','${escapeHtml(p.title||'')}')">
+        <img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.title||'')}" loading="lazy">
+        <div class="gallery-overlay"><div class="gallery-caption">${escapeHtml(p.title||'')}</div></div>
+      </div>
+    `).join('');
+  } catch (err) { showError(container, err.message); }
+}
+
+function openLightbox(src, caption) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-info').textContent = caption;
+  document.getElementById('lightbox-overlay').classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox-overlay').classList.remove('open');
+}
+
+// Lazy-load session data on tab click
+const _loadedTabs = new Set(['race']);
+async function onTabChange(tab) {
+  if (_loadedTabs.has(tab)) return;
+  _loadedTabs.add(tab);
+  const id = _currentRaceId;
+  if (tab === 'qualifying') await loadQualifying(id);
+  if (tab === 'fp1')        await loadPractice(id, 'FP1');
+  if (tab === 'fp2')        await loadPractice(id, 'FP2');
+  if (tab === 'fp3')        await loadPractice(id, 'FP3');
+  if (tab === 'videos')     await loadRaceVideos(id);
+  if (tab === 'gallery')    await loadRaceGallery(id);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeVideoModal(); closeLightbox(); }
+});
+
+document.addEventListener('DOMContentLoaded', initRaceDetail);
+</script>
+</body>
+</html>

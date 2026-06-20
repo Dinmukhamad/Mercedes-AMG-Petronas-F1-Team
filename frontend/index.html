@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>F1 Statistics Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/index.html" class="navbar-logo">
+      <div class="logo-mark">F1</div>
+      <span class="logo-text">F1 <span>Stats</span></span>
+    </a>
+    <div class="navbar-nav" id="desktop-nav">
+      <a href="/index.html"        class="nav-link">Главная</a>
+      <a href="/drivers.html"      class="nav-link">Гонщики</a>
+      <a href="/constructors.html" class="nav-link">Команды</a>
+      <a href="/races.html"        class="nav-link">Гонки</a>
+      <a href="/videos.html"       class="nav-link">Видео</a>
+      <a href="/gallery.html"      class="nav-link">Галерея</a>
+    </div>
+    <div class="navbar-actions">
+      <select class="season-select" id="nav-season-select" aria-label="Выбор сезона"></select>
+      <div id="navbar-auth"></div>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Меню" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobile-menu">
+  <a href="/index.html"        class="nav-link">Главная</a>
+  <a href="/drivers.html"      class="nav-link">Гонщики</a>
+  <a href="/constructors.html" class="nav-link">Команды</a>
+  <a href="/races.html"        class="nav-link">Гонки</a>
+  <a href="/videos.html"       class="nav-link">Видео</a>
+  <a href="/gallery.html"      class="nav-link">Галерея</a>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg-lines"></div>
+    <div class="container hero-content">
+      <p class="hero-eyebrow">Formula 1 · Официальная статистика</p>
+      <h1 class="hero-title">F1 Statistics<br><span class="accent">Dashboard</span></h1>
+      <p class="hero-subtitle">Актуальные данные сезонов, таблицы чемпионата, результаты гонок и подробная статистика пилотов.</p>
+      <div class="d-flex gap-12">
+        <a href="/drivers.html"      class="btn btn-primary btn-lg">Гонщики</a>
+        <a href="/races.html"        class="btn btn-secondary btn-lg">Календарь</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS OVERVIEW -->
+  <section class="section-sm" style="padding-top:32px;">
+    <div class="container">
+      <div class="stats-grid" id="overview-stats">
+        <div class="stat-card">
+          <div class="stat-label">Сезон</div>
+          <div class="stat-value teal" id="stat-season">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Гонок</div>
+          <div class="stat-value" id="stat-races">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Гонщиков</div>
+          <div class="stat-value" id="stat-drivers">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Команд</div>
+          <div class="stat-value" id="stat-constructors">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Лидер зачёта</div>
+          <div class="stat-value" id="stat-leader" style="font-size:1.1rem;">—</div>
+          <div class="stat-meta" id="stat-leader-pts"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Лидер команд</div>
+          <div class="stat-value" id="stat-team-leader" style="font-size:1.05rem;">—</div>
+          <div class="stat-meta" id="stat-team-pts"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Ближайшая гонка</div>
+          <div class="stat-value" id="stat-next-race" style="font-size:0.95rem;">—</div>
+          <div class="stat-meta" id="stat-next-date"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PODIUM TOP-3 -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Личный зачёт</h2>
+          <p class="section-subtitle">Топ-3 гонщика текущего сезона</p>
+        </div>
+        <a href="/drivers.html" class="btn btn-secondary btn-sm">Полная таблица →</a>
+      </div>
+      <div id="podium-container">
+        <div class="loading-spinner"><div class="spinner"></div><span>Загрузка...</span></div>
+      </div>
+      <div class="charts-grid mt-24">
+        <div class="chart-card">
+          <div class="chart-title">Очки топ-3 гонщиков</div>
+          <div class="chart-container"><canvas id="chart-top-drivers"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Кубок конструкторов</div>
+          <div class="chart-container"><canvas id="chart-constructors"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEXT/LAST RACE -->
+  <section class="section" style="padding-top:0;">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Гонки</h2>
+          <p class="section-subtitle">Ближайшая или последняя гонка сезона</p>
+        </div>
+        <a href="/races.html" class="btn btn-secondary btn-sm">Весь календарь →</a>
+      </div>
+      <div id="featured-race">
+        <div class="loading-spinner"><div class="spinner"></div><span>Загрузка...</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK LINKS -->
+  <section class="section" style="padding-top:0;">
+    <div class="container">
+      <h2 class="section-title mb-24">Разделы</h2>
+      <div class="d-grid gap-12" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">
+        <a href="/drivers.html"      class="card" style="text-align:center;text-decoration:none;">
+          <div style="font-size:2rem;margin-bottom:8px;">🏎</div>
+          <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Гонщики</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px;">Личный зачёт сезона</div>
+        </a>
+        <a href="/constructors.html" class="card" style="text-align:center;text-decoration:none;">
+          <div style="font-size:2rem;margin-bottom:8px;">🏆</div>
+          <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Команды</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px;">Кубок конструкторов</div>
+        </a>
+        <a href="/races.html"        class="card" style="text-align:center;text-decoration:none;">
+          <div style="font-size:2rem;margin-bottom:8px;">📅</div>
+          <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Гонки</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px;">Календарь Гран-при</div>
+        </a>
+        <a href="/videos.html"       class="card" style="text-align:center;text-decoration:none;">
+          <div style="font-size:2rem;margin-bottom:8px;">▶</div>
+          <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Видео</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px;">Хайлайты и интервью</div>
+        </a>
+        <a href="/gallery.html"      class="card" style="text-align:center;text-decoration:none;">
+          <div style="font-size:2rem;margin-bottom:8px;">📷</div>
+          <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Галерея</div>
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:4px;">Фотографии сезона</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- LATEST VIDEOS -->
+  <section class="section" style="padding-top:0;">
+    <div class="container">
+      <div class="section-header">
+        <div><h2 class="section-title">Последние видео</h2></div>
+        <a href="/videos.html" class="btn btn-secondary btn-sm">Все видео →</a>
+      </div>
+      <div class="video-grid" id="latest-videos">
+        <div class="loading-spinner"><div class="spinner"></div><span>Загрузка...</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LATEST PHOTOS -->
+  <section class="section" style="padding-top:0;">
+    <div class="container">
+      <div class="section-header">
+        <div><h2 class="section-title">Последние фото</h2></div>
+        <a href="/gallery.html" class="btn btn-secondary btn-sm">Галерея →</a>
+      </div>
+      <div class="gallery-grid" id="latest-photos">
+        <div class="loading-spinner"><div class="spinner"></div><span>Загрузка...</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="navbar-logo" style="margin-bottom:8px;">
+          <div class="logo-mark">F1</div>
+          <span class="logo-text">F1 <span>Stats</span></span>
+        </div>
+        <p class="footer-tagline">Актуальная статистика Формулы-1. Данные получены через официальные API.</p>
+      </div>
+      <div>
+        <div class="footer-heading">Навигация</div>
+        <div class="footer-links">
+          <a href="/drivers.html">Гонщики</a>
+          <a href="/constructors.html">Команды</a>
+          <a href="/races.html">Гонки</a>
+          <a href="/videos.html">Видео</a>
+          <a href="/gallery.html">Галерея</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-heading">Аккаунт</div>
+        <div class="footer-links">
+          <a href="/login.html">Войти</a>
+          <a href="/register.html">Регистрация</a>
+          <a href="/profile.html">Личный кабинет</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025–2026 F1 Statistics Dashboard</span>
+      <span>Данные: Jolpica F1 API · OpenF1 API</span>
+    </div>
+  </div>
+</footer>
+
+<!-- VIDEO MODAL -->
+<div class="video-modal-overlay" id="video-modal-overlay" onclick="closeVideoModal(event)">
+  <div class="video-modal">
+    <div class="video-modal-header">
+      <span class="video-modal-title" id="video-modal-title"></span>
+      <button class="btn btn-ghost btn-sm" onclick="closeVideoModal()">✕ Закрыть</button>
+    </div>
+    <div class="video-iframe-wrap"><iframe id="video-modal-iframe" allowfullscreen></iframe></div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/main-page.js"></script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Администратор — F1 Statistics Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/index.html" class="navbar-logo">
+      <div class="logo-mark">F1</div>
+      <span class="logo-text">F1 <span>Stats</span></span>
+    </a>
+    <div class="navbar-nav">
+      <a href="/index.html"        class="nav-link">Главная</a>
+      <a href="/drivers.html"      class="nav-link">Гонщики</a>
+      <a href="/constructors.html" class="nav-link">Команды</a>
+      <a href="/races.html"        class="nav-link">Гонки</a>
+    </div>
+    <div class="navbar-actions">
+      <div id="navbar-auth"></div>
+    </div>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <a href="/index.html" class="nav-link">Главная</a>
+</div>
+
+<div class="page-wrapper">
+  <div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <div class="admin-nav-section">
+        <div class="admin-nav-label">Синхронизация</div>
+        <a class="admin-nav-link active" data-panel="sync" onclick="showPanel('sync', this)">
+          <span class="admin-nav-icon">🔄</span> Синхронизация
+        </a>
+      </div>
+      <div class="admin-nav-section">
+        <div class="admin-nav-label">Контент</div>
+        <a class="admin-nav-link" data-panel="videos" onclick="showPanel('videos', this)">
+          <span class="admin-nav-icon">▶</span> Видео
+        </a>
+        <a class="admin-nav-link" data-panel="gallery" onclick="showPanel('gallery', this)">
+          <span class="admin-nav-icon">📷</span> Галерея
+        </a>
+      </div>
+      <div class="admin-nav-section">
+        <div class="admin-nav-label">Данные</div>
+        <a class="admin-nav-link" data-panel="seasons" onclick="showPanel('seasons', this)">
+          <span class="admin-nav-icon">📅</span> Сезоны
+        </a>
+        <a class="admin-nav-link" data-panel="drivers" onclick="showPanel('drivers', this)">
+          <span class="admin-nav-icon">🏎</span> Гонщики
+        </a>
+        <a class="admin-nav-link" data-panel="constructors" onclick="showPanel('constructors', this)">
+          <span class="admin-nav-icon">🏆</span> Команды
+        </a>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="admin-content">
+
+      <!-- SYNC PANEL -->
+      <div id="panel-sync" class="admin-panel">
+        <div class="admin-page-header">
+          <h1 class="admin-page-title">Синхронизация данных</h1>
+          <div id="sync-status-badge"></div>
+        </div>
+
+        <div style="display:grid;gap:16px;max-width:800px;">
+          <!-- Season sync -->
+          <div class="sync-status-card">
+            <div class="sync-info">
+              <strong>Список сезонов</strong><br>
+              <span>Получить доступные сезоны из Jolpica API</span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="runSync('seasons')">Синхронизировать</button>
+          </div>
+
+          <!-- Season-specific sync -->
+          <div class="card">
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;">
+              <div style="flex:1;min-width:120px;">
+                <label class="form-label">Сезон</label>
+                <select class="form-control" id="sync-season-select"></select>
+              </div>
+            </div>
+            <div style="display:grid;gap:10px;">
+              <div class="sync-status-card">
+                <div class="sync-info"><strong>Гонщики</strong><br><span>Пилоты выбранного сезона</span></div>
+                <button class="btn btn-secondary btn-sm" onclick="runSyncSeason('drivers')">Запустить</button>
+              </div>
+              <div class="sync-status-card">
+                <div class="sync-info"><strong>Команды</strong><br><span>Конструкторы выбранного сезона</span></div>
+                <button class="btn btn-secondary btn-sm" onclick="runSyncSeason('constructors')">Запустить</button>
+              </div>
+              <div class="sync-status-card">
+                <div class="sync-info"><strong>Гонки и результаты</strong><br><span>Календарь и итоги гонок</span></div>
+                <button class="btn btn-secondary btn-sm" onclick="runSyncSeason('races')">Запустить</button>
+              </div>
+              <div class="sync-status-card">
+                <div class="sync-info"><strong>Таблицы чемпионата</strong><br><span>Личный зачёт и кубок конструкторов</span></div>
+                <button class="btn btn-secondary btn-sm" onclick="runSyncSeason('standings')">Запустить</button>
+              </div>
+              <div class="sync-status-card">
+                <div class="sync-info">
+                  <strong>Отдельная гонка</strong><br>
+                  <span>Все сессии одной гонки (ID)</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <input type="number" class="form-control" id="sync-race-id" placeholder="ID гонки" style="width:120px;">
+                  <button class="btn btn-secondary btn-sm" onclick="runSyncRace()">Запустить</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sync log -->
+        <div style="margin-top:32px;">
+          <h3 style="font-family:var(--font-display);font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:16px;">Лог синхронизации</h3>
+          <div id="sync-log" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:.82rem;color:var(--text-secondary);">
+            Лог пуст
+          </div>
+        </div>
+      </div>
+
+      <!-- VIDEOS PANEL -->
+      <div id="panel-videos" class="admin-panel" style="display:none;">
+        <div class="admin-page-header">
+          <h1 class="admin-page-title">Управление видео</h1>
+          <button class="btn btn-primary btn-sm" onclick="openVideoForm()">+ Добавить видео</button>
+        </div>
+        <div id="videos-admin-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- GALLERY PANEL -->
+      <div id="panel-gallery" class="admin-panel" style="display:none;">
+        <div class="admin-page-header">
+          <h1 class="admin-page-title">Управление галереей</h1>
+          <button class="btn btn-primary btn-sm" onclick="openImageForm()">+ Добавить фото</button>
+        </div>
+        <div id="gallery-admin-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- SEASONS PANEL -->
+      <div id="panel-seasons" class="admin-panel" style="display:none;">
+        <div class="admin-page-header">
+          <h1 class="admin-page-title">Сезоны</h1>
+          <button class="btn btn-primary btn-sm" onclick="openSeasonForm()">+ Добавить сезон</button>
+        </div>
+        <div id="seasons-admin-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- DRIVERS PANEL -->
+      <div id="panel-drivers" class="admin-panel" style="display:none;">
+        <div class="admin-page-header">
+          <h1 class="admin-page-title">Гонщики</h1>
+          <button class="btn btn-primary btn-sm" onclick="openDriverForm()">+ Добавить гонщика</button>
+        </div>
+        <div id="drivers-admin-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- CONSTRUCTORS PANEL -->
+      <div id="panel-constructors" class="admin-panel" style="display:none;">
+        <div class="admin-page-header">
+          <h1 class="admin-page-title">Команды</h1>
+          <button class="btn btn-primary btn-sm" onclick="openConstructorForm()">+ Добавить команду</button>
+        </div>
+        <div id="constructors-admin-table">
+          <div class="loading-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Generic modal -->
+<div id="admin-modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:none;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);">
+      <h3 id="modal-title" style="font-family:var(--font-display);font-weight:700;font-size:1.1rem;text-transform:uppercase;letter-spacing:.04em;"></h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeAdminModal()">✕</button>
+    </div>
+    <div id="modal-body" style="padding:24px;"></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom"><span>© 2025–2026 F1 Statistics Dashboard</span></div>
+  </div>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

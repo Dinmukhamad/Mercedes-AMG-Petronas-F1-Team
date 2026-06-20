@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Галерея — F1 Statistics Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/index.html" class="navbar-logo">
+      <div class="logo-mark">F1</div>
+      <span class="logo-text">F1 <span>Stats</span></span>
+    </a>
+    <div class="navbar-nav">
+      <a href="/index.html"        class="nav-link">Главная</a>
+      <a href="/drivers.html"      class="nav-link">Гонщики</a>
+      <a href="/constructors.html" class="nav-link">Команды</a>
+      <a href="/races.html"        class="nav-link">Гонки</a>
+      <a href="/videos.html"       class="nav-link">Видео</a>
+      <a href="/gallery.html"      class="nav-link active">Галерея</a>
+    </div>
+    <div class="navbar-actions">
+      <select class="season-select" id="nav-season-select"></select>
+      <div id="navbar-auth"></div>
+    </div>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <a href="/index.html"   class="nav-link">Главная</a>
+  <a href="/gallery.html" class="nav-link">Галерея</a>
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <div class="container">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+          <p class="page-breadcrumb"><a href="/index.html">Главная</a> <span class="sep">›</span> Галерея</p>
+          <h1 class="page-title">Галерея</h1>
+        </div>
+        <select class="season-select" id="page-season-select"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="container">
+      <div class="filter-bar">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="form-control" id="search-photo" placeholder="Поиск по описанию...">
+        </div>
+        <select class="form-control" id="filter-race"><option value="">Все гонки</option></select>
+        <select class="form-control" id="filter-driver"><option value="">Все гонщики</option></select>
+      </div>
+
+      <div id="photo-count" style="font-size:.82rem;color:var(--text-muted);margin-bottom:16px;"></div>
+
+      <div class="gallery-grid" id="gallery-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));">
+        <div class="loading-spinner"><div class="spinner"></div><span>Загрузка...</span></div>
+      </div>
+
+      <div id="load-more-wrap" style="text-align:center;margin-top:32px;display:none;">
+        <button class="btn btn-secondary" id="load-more-btn">Загрузить ещё</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox-overlay" class="lightbox-overlay" onclick="if(event.target===this)closeLightbox()">
+  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+  <div id="lightbox-nav-prev" onclick="lightboxNav(-1)" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:1.8rem;color:var(--text-secondary);cursor:pointer;padding:16px;user-select:none;">‹</div>
+  <div id="lightbox-nav-next" onclick="lightboxNav(1)"  style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:1.8rem;color:var(--text-secondary);cursor:pointer;padding:16px;user-select:none;">›</div>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="">
+  <div class="lightbox-info" id="lightbox-info"></div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom"><span>© 2025–2026 F1 Statistics Dashboard</span></div>
+  </div>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/gallery.js"></script>
+</body>
+</html>
