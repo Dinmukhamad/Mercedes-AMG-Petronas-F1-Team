@@ -1,10 +1,11 @@
+from collections import defaultdict, deque
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_token_payload, get_current_user, get_db
-from app.core.rate_limit import limiter
 from app.core.security import create_access_token, hash_password, verify_password
 from app.core.token_blacklist import revoke_token
 from app.models.user import User
@@ -12,6 +13,38 @@ from app.schemas.auth import MessageResponse, Token, UserLogin, UserRegister, Us
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+LOGIN_RATE_LIMIT = 5
+LOGIN_RATE_WINDOW = timedelta(minutes=1)
+_login_attempts: dict[str, deque[datetime]] = defaultdict(deque)
+
+
+def _client_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",", 1)[0].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+
+def _enforce_login_rate_limit(request: Request) -> None:
+    now = datetime.now(timezone.utc)
+    cutoff = now - LOGIN_RATE_WINDOW
+    key = _client_ip(request)
+    attempts = _login_attempts[key]
+
+    while attempts and attempts[0] <= cutoff:
+        attempts.popleft()
+
+    if len(attempts) >= LOGIN_RATE_LIMIT:
+        retry_after = max(1, int((attempts[0] + LOGIN_RATE_WINDOW - now).total_seconds()))
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too Many Requests",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    attempts.append(now)
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -42,12 +75,12 @@ def register(payload: UserRegister, db: Session = Depends(get_db)) -> User:
 
 
 @router.post("/login", response_model=Token)
-@limiter.limit("5/minute")
 def login(
     request: Request,
     payload: UserLogin,
     db: Session = Depends(get_db),
 ) -> Token:
+    _enforce_login_rate_limit(request)
     user = db.query(User).filter(User.email == payload.email).first()
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
