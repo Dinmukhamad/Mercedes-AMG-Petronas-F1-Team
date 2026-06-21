@@ -15,7 +15,8 @@ router = APIRouter(prefix="/api/gallery", tags=["gallery"])
 def list_gallery_images(
     season: int | None = Query(default=None),
     race_id: int | None = Query(default=None),
-    limit: int = Query(default=50, ge=1, le=100),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> list[GalleryImage]:
     query = db.query(GalleryImage)
@@ -26,7 +27,7 @@ def list_gallery_images(
         query = query.filter(GalleryImage.season_id == season_item.id)
     if race_id is not None:
         query = query.filter(GalleryImage.race_id == race_id)
-    return query.order_by(GalleryImage.created_at.desc()).limit(limit).all()
+    return query.order_by(GalleryImage.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{image_id}", response_model=GalleryImageResponse)

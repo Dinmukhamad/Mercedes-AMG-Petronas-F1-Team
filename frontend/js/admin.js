@@ -5,7 +5,7 @@
 let _syncLog = [];
 
 async function initAdminPage() {
-  if (!requireAdmin()) return;
+  if (!(await requireAdmin())) return;
 
   // Populate season selects
   const seasons = await loadSeasons();
@@ -53,26 +53,73 @@ function showPanel(panelName, linkEl) {
 
 async function loadSyncStatus() {
   const badge = document.getElementById('sync-status-badge');
+  let tableWrap = document.getElementById('sync-status-table');
   try {
-    const status = await Admin.syncStatus();
+    const statuses = await Admin.syncStatus();
     if (!badge) return;
-    if (status?.is_syncing) {
-      badge.innerHTML = `<span class="badge badge-teal"><span class="pulse-dot"></span> Синхронизация...</span>`;
-    } else {
-      const last = status?.last_sync_at ? formatDate(status.last_sync_at) : 'никогда';
-      badge.innerHTML = `<span class="badge badge-success">✓ Готово · ${last}</span>`;
+    const hasErrors = (statuses || []).some(item => !item.success);
+    badge.innerHTML = hasErrors
+      ? `<span class="badge badge-warning">Есть ошибки синхронизации</span>`
+      : `<span class="badge badge-success">Готово</span>`;
+
+    if (!tableWrap) {
+      tableWrap = document.createElement('div');
+      tableWrap.id = 'sync-status-table';
+      tableWrap.style.marginTop = '16px';
+      badge.closest('.admin-page-header')?.insertAdjacentElement('afterend', tableWrap);
     }
+
+    if (!statuses?.length) {
+      tableWrap.innerHTML = '';
+      return;
+    }
+
+    tableWrap.innerHTML = `
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Задача</th>
+              <th>Статус</th>
+              <th>Синхронизировано</th>
+              <th>Последний запуск</th>
+              <th>Сообщение</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${statuses.slice(0, 8).map(item => `
+              <tr>
+                <td><strong>${escapeHtml(item.name)}</strong></td>
+                <td>${item.success ? '<span class="badge badge-success">Успех</span>' : '<span class="badge badge-error">Ошибка</span>'}</td>
+                <td class="number">${item.synced_count ?? 0}</td>
+                <td class="muted">${formatSyncDate(item.updated_at)}</td>
+                <td class="muted">${escapeHtml(item.message || '—')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   } catch (_) {
     if (badge) badge.innerHTML = `<span class="badge badge-silver">Статус недоступен</span>`;
+    if (tableWrap) tableWrap.innerHTML = '';
   }
 }
 
 async function runSync(type) {
   addSyncLog(`▶ Запуск синхронизации: ${type}...`);
   try {
-    const result = await Admin.syncSeasons();
+    let result;
+    if (type === 'seasons') result = await Admin.syncSeasons();
+    else {
+      console.warn('Unknown sync type:', type);
+      showToast('Неизвестный тип синхронизации', 'warning');
+      return;
+    }
+
     addSyncLog(`✓ ${type}: ${JSON.stringify(result)}`);
     showToast('Синхронизация запущена', 'success');
+    await loadSyncStatus();
   } catch (err) {
     addSyncLog(`✕ Ошибка: ${err.message}`);
     showToast(err.message, 'error');
@@ -90,9 +137,15 @@ async function runSyncSeason(type) {
     if (type === 'constructors') result = await Admin.syncConstructors(season);
     if (type === 'races')        result = await Admin.syncRaces(season);
     if (type === 'standings')    result = await Admin.syncStandings(season);
+    if (!result) {
+      console.warn('Unknown season sync type:', type);
+      showToast('Неизвестный тип синхронизации', 'warning');
+      return;
+    }
 
     addSyncLog(`✓ Готово: ${JSON.stringify(result)}`);
     showToast(`Синхронизация ${type} запущена`, 'success');
+    await loadSyncStatus();
   } catch (err) {
     addSyncLog(`✕ Ошибка: ${err.message}`);
     showToast(err.message, 'error');
@@ -108,6 +161,7 @@ async function runSyncRace() {
     const result = await Admin.syncRace(raceId);
     addSyncLog(`✓ Готово: ${JSON.stringify(result)}`);
     showToast(`Гонка ${raceId} синхронизирована`, 'success');
+    await loadSyncStatus();
   } catch (err) {
     addSyncLog(`✕ Ошибка: ${err.message}`);
     showToast(err.message, 'error');
@@ -120,6 +174,19 @@ function addSyncLog(message) {
   const time = new Date().toLocaleTimeString('ru-RU');
   _syncLog.unshift(`[${time}] ${message}`);
   log.textContent = _syncLog.join('\n');
+}
+
+function formatSyncDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 // ============================================

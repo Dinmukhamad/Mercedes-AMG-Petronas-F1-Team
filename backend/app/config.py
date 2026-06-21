@@ -1,15 +1,12 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = Field(
-        "postgresql://user:password@localhost:5432/f1_dashboard",
-        alias="DATABASE_URL",
-    )
-    secret_key: str = Field("change_me", alias="SECRET_KEY")
+    database_url: str = Field(alias="DATABASE_URL")
+    secret_key: str = Field(alias="SECRET_KEY")
     algorithm: str = Field("HS256", alias="ALGORITHM")
     access_token_expire_minutes: int = Field(1440, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     jolpica_base_url: str = Field(
@@ -29,6 +26,15 @@ class Settings(BaseSettings):
         extra="ignore",
         populate_by_name=True,
     )
+
+    @field_validator("database_url", "secret_key")
+    @classmethod
+    def validate_required_secret(cls, value: str, info) -> str:
+        if not value or not value.strip():
+            raise ValueError(f"{info.field_name.upper()} must be set")
+        if info.field_name == "secret_key" and value == "change_me":
+            raise ValueError("SECRET_KEY must not use the default development value")
+        return value
 
     @property
     def cors_origin_list(self) -> list[str]:

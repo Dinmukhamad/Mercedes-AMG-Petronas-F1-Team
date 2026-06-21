@@ -16,6 +16,8 @@ router = APIRouter(prefix="/api/drivers", tags=["drivers"])
 @router.get("", response_model=list[DriverResponse])
 def list_drivers(
     season: int | None = Query(default=None),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> list[Driver]:
     query = db.query(Driver)
@@ -28,7 +30,7 @@ def list_drivers(
             .filter(DriverStanding.season_id == season_item.id)
             .distinct()
         )
-    return query.order_by(Driver.full_name.asc()).all()
+    return query.order_by(Driver.full_name.asc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{driver_id}", response_model=DriverResponse)
@@ -60,4 +62,3 @@ def get_driver_stats(
             detail="Driver stats not found",
         )
     return standing
-

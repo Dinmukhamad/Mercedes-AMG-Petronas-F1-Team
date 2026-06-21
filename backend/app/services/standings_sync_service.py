@@ -1,17 +1,15 @@
 from sqlalchemy.orm import Session
 
-from app.models.constructor import Constructor
-from app.models.driver import Driver
 from app.models.season import Season
 from app.models.standings import ConstructorStanding, DriverStanding
 from app.services.jolpica_service import JolpicaService
 from app.services.sync_helpers import (
     SyncResult,
-    parse_date,
     parse_decimal,
     parse_int,
     record_sync_status,
-    upsert_by_external_id,
+    upsert_constructor_from_jolpica,
+    upsert_driver_from_jolpica,
 )
 
 
@@ -53,9 +51,9 @@ class StandingsSyncService:
             return 0
         count = 0
         for item in lists[0].get("DriverStandings", []):
-            driver = self._upsert_driver(db, item.get("Driver", {}))
+            driver = upsert_driver_from_jolpica(db, item.get("Driver", {}))
             constructors = item.get("Constructors", [])
-            constructor = self._upsert_constructor(db, constructors[0]) if constructors else None
+            constructor = upsert_constructor_from_jolpica(db, constructors[0]) if constructors else None
             existing = (
                 db.query(DriverStanding)
                 .filter_by(season_id=season.id, driver_id=driver.id)
@@ -93,7 +91,7 @@ class StandingsSyncService:
             return 0
         count = 0
         for item in lists[0].get("ConstructorStandings", []):
-            constructor = self._upsert_constructor(db, item.get("Constructor", {}))
+            constructor = upsert_constructor_from_jolpica(db, item.get("Constructor", {}))
             if constructor is None:
                 continue
             existing = (
@@ -117,39 +115,4 @@ class StandingsSyncService:
                 db.add(ConstructorStanding(**data))
             count += 1
         return count
-
-    def _upsert_driver(self, db: Session, payload: dict) -> Driver:
-        external_id = payload.get("driverId") or f"driver-{payload.get('code')}"
-        first_name = payload.get("givenName") or ""
-        last_name = payload.get("familyName") or ""
-        data = {
-            "external_id": external_id,
-            "first_name": first_name,
-            "last_name": last_name,
-            "full_name": f"{first_name} {last_name}".strip() or external_id,
-            "date_of_birth": parse_date(payload.get("dateOfBirth")),
-            "nationality": payload.get("nationality"),
-            "driver_number": parse_int(payload.get("permanentNumber")),
-            "photo_url": None,
-            "status": "active",
-        }
-        driver, _ = upsert_by_external_id(db, Driver, external_id, data)
-        db.flush()
-        return driver
-
-    def _upsert_constructor(self, db: Session, payload: dict) -> Constructor | None:
-        external_id = payload.get("constructorId")
-        if not external_id:
-            return None
-        data = {
-            "external_id": external_id,
-            "name": payload.get("name") or external_id,
-            "nationality": payload.get("nationality"),
-            "logo_url": None,
-            "car_name": None,
-            "car_image_url": None,
-        }
-        constructor, _ = upsert_by_external_id(db, Constructor, external_id, data)
-        db.flush()
-        return constructor
 

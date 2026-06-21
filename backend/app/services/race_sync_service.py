@@ -2,7 +2,6 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models.constructor import Constructor
 from app.models.driver import Driver
 from app.models.race import Race
 from app.models.race_result import PracticeResult, QualifyingResult, RaceResult
@@ -16,7 +15,9 @@ from app.services.sync_helpers import (
     parse_int,
     race_status,
     record_sync_status,
+    upsert_constructor_from_jolpica,
     upsert_by_external_id,
+    upsert_driver_from_jolpica,
 )
 
 
@@ -102,8 +103,8 @@ class RaceSyncService:
         results = races[0].get("Results", [])
         count = 0
         for item in results:
-            driver = self._upsert_driver_from_payload(db, item.get("Driver", {}))
-            constructor = self._upsert_constructor_from_payload(db, item.get("Constructor", {}))
+            driver = upsert_driver_from_jolpica(db, item.get("Driver", {}))
+            constructor = upsert_constructor_from_jolpica(db, item.get("Constructor", {}))
             existing = (
                 db.query(RaceResult)
                 .filter_by(race_id=race.id, driver_id=driver.id)
@@ -138,8 +139,8 @@ class RaceSyncService:
         results = races[0].get("QualifyingResults", [])
         count = 0
         for item in results:
-            driver = self._upsert_driver_from_payload(db, item.get("Driver", {}))
-            constructor = self._upsert_constructor_from_payload(db, item.get("Constructor", {}))
+            driver = upsert_driver_from_jolpica(db, item.get("Driver", {}))
+            constructor = upsert_constructor_from_jolpica(db, item.get("Constructor", {}))
             existing = (
                 db.query(QualifyingResult)
                 .filter_by(race_id=race.id, driver_id=driver.id)
@@ -217,25 +218,6 @@ class RaceSyncService:
                 count += 1
         return count
 
-    def _upsert_driver_from_payload(self, db: Session, payload: dict[str, Any]) -> Driver:
-        external_id = payload.get("driverId") or f"driver-{payload.get('code')}"
-        first_name = payload.get("givenName") or ""
-        last_name = payload.get("familyName") or ""
-        data = {
-            "external_id": external_id,
-            "first_name": first_name,
-            "last_name": last_name,
-            "full_name": f"{first_name} {last_name}".strip() or external_id,
-            "date_of_birth": parse_date(payload.get("dateOfBirth")),
-            "nationality": payload.get("nationality"),
-            "driver_number": parse_int(payload.get("permanentNumber")),
-            "photo_url": None,
-            "status": "active",
-        }
-        driver, _ = upsert_by_external_id(db, Driver, external_id, data)
-        db.flush()
-        return driver
-
     def _upsert_driver_from_openf1(self, db: Session, payload: dict[str, Any]) -> Driver:
         external_id = f"openf1:{payload.get('driver_number')}"
         full_name = payload.get("full_name") or external_id
@@ -255,26 +237,6 @@ class RaceSyncService:
         db.flush()
         return driver
 
-    def _upsert_constructor_from_payload(
-        self,
-        db: Session,
-        payload: dict[str, Any],
-    ) -> Constructor | None:
-        external_id = payload.get("constructorId")
-        if not external_id:
-            return None
-        data = {
-            "external_id": external_id,
-            "name": payload.get("name") or external_id,
-            "nationality": payload.get("nationality"),
-            "logo_url": None,
-            "car_name": None,
-            "car_image_url": None,
-        }
-        constructor, _ = upsert_by_external_id(db, Constructor, external_id, data)
-        db.flush()
-        return constructor
-
     def _best_practice_laps(self, laps: list[dict[str, Any]]) -> list[tuple[int, str]]:
         best_by_driver: dict[int, str] = {}
         for lap in laps:
@@ -287,4 +249,3 @@ class RaceSyncService:
             if current is None or float(lap_duration) < float(current):
                 best_by_driver[driver_number] = lap_time
         return sorted(best_by_driver.items(), key=lambda item: float(item[1]))
-

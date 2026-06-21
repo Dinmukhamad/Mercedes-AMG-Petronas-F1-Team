@@ -11,8 +11,20 @@ class ExternalAPIError(RuntimeError):
 
 
 class JolpicaService:
+    _client: httpx.AsyncClient | None = None
+
     def __init__(self) -> None:
         self.base_url = f"{settings.jolpica_base_url.rstrip('/')}/"
+
+    def _get_client(self) -> httpx.AsyncClient:
+        if self.__class__._client is None or self.__class__._client.is_closed:
+            self.__class__._client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
+        return self.__class__._client
+
+    @classmethod
+    async def close_client(cls) -> None:
+        if cls._client is not None and not cls._client.is_closed:
+            await cls._client.aclose()
 
     @retry(
         retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError)),
@@ -28,7 +40,6 @@ class JolpicaService:
         request_params = {"limit": 100, "offset": 0}
         if params:
             request_params.update(params)
-        async with httpx.AsyncClient(base_url=self.base_url, timeout=30.0) as client:
-            response = await client.get(path.lstrip("/"), params=request_params)
-            response.raise_for_status()
-            return response.json()
+        response = await self._get_client().get(path.lstrip("/"), params=request_params)
+        response.raise_for_status()
+        return response.json()

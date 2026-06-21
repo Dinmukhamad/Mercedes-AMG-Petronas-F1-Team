@@ -7,6 +7,7 @@ from app.models.race_result import PracticeResult, QualifyingResult, RaceResult
 from app.models.season import Season
 from app.models.standings import ConstructorStanding, DriverStanding
 from app.models.sync_status import SyncStatus
+from app.models.token_blacklist import TokenBlacklist
 from app.models.user import User
 from app.models.video import Video
 
@@ -23,7 +24,7 @@ __all__ = [
     "RaceResult",
     "Season",
     "SyncStatus",
+    "TokenBlacklist",
     "User",
     "Video",
 ]
-

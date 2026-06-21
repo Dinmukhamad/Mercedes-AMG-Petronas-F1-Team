@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_token_payload, get_current_user, get_db
+from app.core.rate_limit import limiter
 from app.core.security import create_access_token, hash_password, verify_password
+from app.core.token_blacklist import revoke_token
 from app.models.user import User
 from app.schemas.auth import MessageResponse, Token, UserLogin, UserRegister, UserResponse
 
@@ -38,7 +42,12 @@ def register(payload: UserRegister, db: Session = Depends(get_db)) -> User:
 
 
 @router.post("/login", response_model=Token)
-def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
+@limiter.limit("5/minute")
+def login(
+    request: Request,
+    payload: UserLogin,
+    db: Session = Depends(get_db),
+) -> Token:
     user = db.query(User).filter(User.email == payload.email).first()
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
@@ -55,5 +64,10 @@ def me(current_user: User = Depends(get_current_user)) -> User:
 
 
 @router.post("/logout", response_model=MessageResponse)
-def logout(_: User = Depends(get_current_user)) -> MessageResponse:
+def logout(
+    payload: dict[str, Any] = Depends(get_current_token_payload),
+    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    revoke_token(db, payload)
     return MessageResponse(message="Logged out successfully")

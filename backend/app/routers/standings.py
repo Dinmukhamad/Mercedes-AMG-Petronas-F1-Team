@@ -24,6 +24,8 @@ def _season_or_404(db: Session, year: int) -> Season:
 @router.get("/drivers", response_model=list[DriverStandingResponse])
 def driver_standings(
     season: int = Query(...),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> list[DriverStanding]:
     season_item = _season_or_404(db, season)
@@ -32,6 +34,8 @@ def driver_standings(
         .options(selectinload(DriverStanding.driver), selectinload(DriverStanding.constructor))
         .filter_by(season_id=season_item.id)
         .order_by(DriverStanding.position.asc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 
@@ -39,6 +43,8 @@ def driver_standings(
 @router.get("/constructors", response_model=list[ConstructorStandingResponse])
 def constructor_standings(
     season: int = Query(...),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> list[ConstructorStanding]:
     season_item = _season_or_404(db, season)
@@ -47,6 +53,8 @@ def constructor_standings(
         .options(selectinload(ConstructorStanding.constructor))
         .filter_by(season_id=season_item.id)
         .order_by(ConstructorStanding.position.asc())
+        .offset(skip)
+        .limit(limit)
         .all()
     )
 

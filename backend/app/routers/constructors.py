@@ -16,6 +16,8 @@ router = APIRouter(prefix="/api/constructors", tags=["constructors"])
 @router.get("", response_model=list[ConstructorResponse])
 def list_constructors(
     season: int | None = Query(default=None),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ) -> list[Constructor]:
     query = db.query(Constructor)
@@ -31,7 +33,7 @@ def list_constructors(
             .filter(ConstructorStanding.season_id == season_item.id)
             .distinct()
         )
-    return query.order_by(Constructor.name.asc()).all()
+    return query.order_by(Constructor.name.asc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{constructor_id}", response_model=ConstructorResponse)
@@ -63,4 +65,3 @@ def get_constructor_stats(
             detail="Constructor stats not found",
         )
     return standing
-
