@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
 
 from app.core.dependencies import get_db
 from app.models.gallery import GalleryImage
@@ -45,6 +46,7 @@ def race_results(race_id: int, db: Session = Depends(get_db)) -> list[RaceResult
     get_or_404(db, Race, race_id, "Race")
     return (
         db.query(RaceResult)
+        .options(selectinload(RaceResult.driver), selectinload(RaceResult.constructor))
         .filter_by(race_id=race_id)
         .order_by(RaceResult.position.asc())
         .all()
@@ -59,6 +61,7 @@ def qualifying_results(
     get_or_404(db, Race, race_id, "Race")
     return (
         db.query(QualifyingResult)
+        .options(selectinload(QualifyingResult.driver), selectinload(QualifyingResult.constructor))
         .filter_by(race_id=race_id)
         .order_by(QualifyingResult.position.asc())
         .all()
@@ -70,6 +73,7 @@ def practice_results(race_id: int, db: Session = Depends(get_db)) -> list[Practi
     get_or_404(db, Race, race_id, "Race")
     return (
         db.query(PracticeResult)
+        .options(selectinload(PracticeResult.driver), selectinload(PracticeResult.constructor))
         .filter_by(race_id=race_id)
         .order_by(PracticeResult.session_type.asc(), PracticeResult.position.asc())
         .all()
@@ -91,4 +95,3 @@ def race_gallery(race_id: int, db: Session = Depends(get_db)) -> list[GalleryIma
         .order_by(GalleryImage.created_at.desc())
         .all()
     )
-

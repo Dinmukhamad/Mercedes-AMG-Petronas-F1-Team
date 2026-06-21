@@ -3,6 +3,9 @@ from decimal import Decimal
 
 from pydantic import BaseModel
 
+from app.schemas.constructor import ConstructorResponse
+from app.schemas.driver import DriverResponse
+
 
 class RaceBase(BaseModel):
     external_id: str | None = None
@@ -73,6 +76,8 @@ class RaceResultUpdate(BaseModel):
 
 class RaceResultResponse(RaceResultBase):
     id: int
+    driver: DriverResponse | None = None
+    constructor: ConstructorResponse | None = None
 
     model_config = {"from_attributes": True}
 
@@ -103,6 +108,8 @@ class QualifyingResultUpdate(BaseModel):
 
 class QualifyingResultResponse(QualifyingResultBase):
     id: int
+    driver: DriverResponse | None = None
+    constructor: ConstructorResponse | None = None
 
     model_config = {"from_attributes": True}
 
@@ -131,6 +138,7 @@ class PracticeResultUpdate(BaseModel):
 
 class PracticeResultResponse(PracticeResultBase):
     id: int
+    driver: DriverResponse | None = None
+    constructor: ConstructorResponse | None = None
 
     model_config = {"from_attributes": True}
-
