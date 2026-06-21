@@ -5,10 +5,8 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
-from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.database import Base, engine
 from app.models import TokenBlacklist
 from app.routers import (
@@ -36,9 +34,6 @@ app = FastAPI(
     version="1.0.0",
     description="Backend API for Formula 1 statistics, media, favorites, and admin sync.",
 )
-
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 allow_origins = settings.cors_origin_list
 if settings.app_env == "production":
@@ -78,7 +73,11 @@ async def close_external_clients() -> None:
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers,
+    )
 
 
 @app.exception_handler(RequestValidationError)
