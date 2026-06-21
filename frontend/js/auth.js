@@ -53,6 +53,7 @@ function initLoginPage() {
 
     try {
       const data = await Auth.login({ email, password });
+      localStorage.setItem('f1_token', data.access_token);
       const user = await Auth.me();
       AuthState.save(data.access_token, user);
       showToast('Добро пожаловать, ' + user.username + '!', 'success');
@@ -109,6 +110,7 @@ function initRegisterPage() {
       await Auth.register({ username, email, password, password_confirmation: confirm });
       // Auto-login after register
       const tokenData = await Auth.login({ email, password });
+      localStorage.setItem('f1_token', tokenData.access_token);
       const user = await Auth.me();
       AuthState.save(tokenData.access_token, user);
       showToast('Аккаунт создан!', 'success');
