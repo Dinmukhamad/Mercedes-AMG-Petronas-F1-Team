@@ -31,7 +31,7 @@ async function loadVideos(season) {
   _currentPage = 0;
 
   try {
-    _allVideos = await Videos.list({ season });
+    _allVideos = await Videos.list({ season, limit: 100 });
     populateRaceFilter(_allVideos);
     applyFilters();
   } catch (err) {
@@ -65,7 +65,7 @@ function renderVideos(videos, append = false) {
     card.onclick = () => openVideo(v);
 
     const thumb = v.thumbnail_url
-      ? `<img src="${escapeHtml(v.thumbnail_url)}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.parentElement.innerHTML='<div style=width:100%;height:100%;background:var(--bg-graphite);display:flex;align-items:center;justify-content:center;font-size:2rem>▶</div>'">`
+      ? `<img src="${escapeHtml(v.thumbnail_url)}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.style.display='none'">`
       : `<div style="width:100%;height:100%;background:var(--bg-graphite);display:flex;align-items:center;justify-content:center;font-size:2rem;">▶</div>`;
 
     const typeLabel = VIDEO_TYPE_LABELS[v.type] || v.type || 'Видео';
@@ -124,7 +124,6 @@ function populateRaceFilter(videos) {
   videos.forEach(v => {
     if (v.race_id && v.race?.name) races[v.race_id] = v.race.name;
   });
-  const existing = sel.innerHTML;
   sel.innerHTML = '<option value="">Все гонки</option>' +
     Object.entries(races).map(([id, name]) => `<option value="${id}">${escapeHtml(name)}</option>`).join('');
 }

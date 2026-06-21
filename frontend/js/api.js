@@ -3,7 +3,7 @@
  * Базовый URL берётся из константы API_BASE
  */
 
-const API_BASE = 'https://f1-dashboard-backend-ri9z.onrender.com/api';
+const API_BASE = window.API_BASE || 'https://f1-dashboard-backend-ri9z.onrender.com/api';
 
 // ============================================
 // CORE FETCH
@@ -42,14 +42,6 @@ function apiGet(path)              { return apiFetch(path); }
 function apiPost(path, body)       { return apiFetch(path, { method: 'POST',   body: JSON.stringify(body) }); }
 function apiPut(path, body)        { return apiFetch(path, { method: 'PUT',    body: JSON.stringify(body) }); }
 function apiDelete(path)           { return apiFetch(path, { method: 'DELETE' }); }
-function apiPostForm(path, formData) {
-  const token = localStorage.getItem('f1_token');
-  return fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-    body: formData,
-  }).then(r => r.json());
-}
 
 // ============================================
 // AUTH

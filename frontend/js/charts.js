@@ -71,7 +71,7 @@ function renderTopDriversChart(canvasId, drivers) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || !drivers?.length) return;
 
-  const labels = drivers.map(d => d.driver?.last_name || d.full_name || 'N/A');
+  const labels = drivers.map(d => getDriverLastName(d));
   const points = drivers.map(d => parseFloat(d.points) || 0);
 
   new Chart(canvas, {
@@ -125,7 +125,7 @@ function renderConstructorsChart(canvasId, constructors) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || !constructors?.length) return;
 
-  const labels = constructors.map(c => c.constructor?.name || c.name || 'N/A');
+  const labels = constructors.map(c => getConstructorName(c, 'N/A'));
   const points = constructors.map(c => parseFloat(c.points) || 0);
 
   new Chart(canvas, {
@@ -372,7 +372,7 @@ function renderRacePointsChart(canvasId, results) {
   if (!canvas || !results?.length) return;
 
   const filtered = results.filter(r => parseFloat(r.points) > 0);
-  const labels = filtered.map(r => r.driver?.last_name || 'N/A');
+  const labels = filtered.map(r => getDriverLastName(r));
   const data   = filtered.map(r => parseFloat(r.points));
 
   new Chart(canvas, {
@@ -414,7 +414,7 @@ function renderPodiumsChart(canvasId, standings) {
   if (!canvas || !standings?.length) return;
 
   const top10 = standings.slice(0, 10);
-  const labels = top10.map(d => d.driver?.last_name || 'N/A');
+  const labels = top10.map(d => getDriverLastName(d));
 
   new Chart(canvas, {
     type: 'bar',

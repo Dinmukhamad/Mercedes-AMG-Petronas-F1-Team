@@ -2,6 +2,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, model_validator
 
+from app.schemas.constructor import ConstructorResponse
+from app.schemas.driver import DriverResponse
+
 
 class FavoriteBase(BaseModel):
     driver_id: int | None = None
@@ -28,6 +31,7 @@ class FavoriteResponse(FavoriteBase):
     id: int
     user_id: int
     created_at: datetime
+    driver: DriverResponse | None = None
+    constructor: ConstructorResponse | None = None
 
     model_config = {"from_attributes": True}
-

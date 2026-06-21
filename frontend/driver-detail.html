@@ -117,9 +117,9 @@ async function loadDriver(driverId, season) {
 }
 
 function renderDriverHero(container, driver, stats, season) {
-  const name    = `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || '—';
+  const name    = getDriverName(driver, '—');
   const photo   = driver.photo_url || '';
-  const team    = driver.constructor?.name || stats?.constructor?.name || '—';
+  const team    = getConstructorName(stats?.constructor || driver, '—');
   const pos     = stats?.position || '—';
   const points  = stats?.points || 0;
   const wins    = stats?.wins || 0;

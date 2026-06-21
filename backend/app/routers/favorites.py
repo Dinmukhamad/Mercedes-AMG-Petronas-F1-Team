@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
 
 from app.core.dependencies import get_current_user, get_db
 from app.models.constructor import Constructor
@@ -18,7 +19,13 @@ def list_favorites(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[Favorite]:
-    return db.query(Favorite).filter_by(user_id=current_user.id).order_by(Favorite.id.asc()).all()
+    return (
+        db.query(Favorite)
+        .options(selectinload(Favorite.driver), selectinload(Favorite.constructor))
+        .filter_by(user_id=current_user.id)
+        .order_by(Favorite.id.asc())
+        .all()
+    )
 
 
 @router.post(
@@ -107,4 +114,3 @@ def delete_constructor_favorite(
         )
     db.delete(favorite)
     db.commit()
-

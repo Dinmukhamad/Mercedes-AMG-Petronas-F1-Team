@@ -72,7 +72,7 @@ function renderFavDrivers(container, favs) {
   }
   container.innerHTML = favs.map(f => {
     const d     = f.driver;
-    const name  = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+    const name  = getDriverName(d, '—');
     const photo = d.photo_url || '';
     return `
       <div class="card" style="display:flex;align-items:center;gap:14px;">
@@ -100,7 +100,7 @@ function renderFavTeams(container, favs) {
   }
   container.innerHTML = favs.map(f => {
     const c    = f.constructor;
-    const name = c.name || '—';
+    const name = getConstructorName(c, '—');
     const logo = c.logo_url || '';
     return `
       <div class="card" style="display:flex;align-items:center;gap:14px;">

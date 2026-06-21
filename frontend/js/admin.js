@@ -372,15 +372,19 @@ async function loadAdminDrivers() {
         <table>
           <thead><tr><th>#</th><th>Гонщик</th><th>Команда</th><th>Статус</th><th style="width:80px;"></th></tr></thead>
           <tbody>
-            ${(drivers || []).map(d => `
+            ${(drivers || []).map(d => {
+              const name = getDriverName(d, '—');
+              const team = getConstructorName(d, '—');
+              return `
               <tr>
                 <td class="muted">${d.driver_number || '—'}</td>
-                <td>${escapeHtml(d.first_name + ' ' + d.last_name)}</td>
-                <td class="muted" style="font-size:.82rem;">${escapeHtml(d.team?.name || d.constructor?.name || '—')}</td>
+                <td>${escapeHtml(name)}</td>
+                <td class="muted" style="font-size:.82rem;">${escapeHtml(team)}</td>
                 <td>${getDriverStatusBadge(d.status)}</td>
                 <td><button class="btn btn-danger btn-sm" onclick="deleteDriver(${d.id})">✕</button></td>
               </tr>
-            `).join('')}
+            `;
+            }).join('')}
           </tbody>
         </table>
       </div>

@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/videos", tags=["videos"])
 def list_videos(
     season: int | None = Query(default=None),
     race_id: int | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
 ) -> list[Video]:
     query = db.query(Video)
@@ -25,10 +26,9 @@ def list_videos(
         query = query.filter(Video.season_id == season_item.id)
     if race_id is not None:
         query = query.filter(Video.race_id == race_id)
-    return query.order_by(Video.published_at.desc(), Video.created_at.desc()).all()
+    return query.order_by(Video.published_at.desc(), Video.created_at.desc()).limit(limit).all()
 
 
 @router.get("/{video_id}", response_model=VideoResponse)
 def get_video(video_id: int, db: Session = Depends(get_db)) -> Video:
     return get_or_404(db, Video, video_id, "Video")
-
