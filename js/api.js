@@ -3,7 +3,7 @@
  * Базовый URL берётся из константы API_BASE
  */
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'https://f1-dashboard-backend-ri9z.onrender.com/api';
 
 // ============================================
 // CORE FETCH
