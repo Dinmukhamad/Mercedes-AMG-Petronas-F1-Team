@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
 
 from app.core.dependencies import get_db
 from app.models.season import Season
@@ -28,6 +29,7 @@ def driver_standings(
     season_item = _season_or_404(db, season)
     return (
         db.query(DriverStanding)
+        .options(selectinload(DriverStanding.driver), selectinload(DriverStanding.constructor))
         .filter_by(season_id=season_item.id)
         .order_by(DriverStanding.position.asc())
         .all()
@@ -42,6 +44,7 @@ def constructor_standings(
     season_item = _season_or_404(db, season)
     return (
         db.query(ConstructorStanding)
+        .options(selectinload(ConstructorStanding.constructor))
         .filter_by(season_id=season_item.id)
         .order_by(ConstructorStanding.position.asc())
         .all()
@@ -57,6 +60,7 @@ def top_drivers(
     season_item = _season_or_404(db, season)
     return (
         db.query(DriverStanding)
+        .options(selectinload(DriverStanding.driver), selectinload(DriverStanding.constructor))
         .filter_by(season_id=season_item.id)
         .order_by(DriverStanding.position.asc())
         .limit(limit)
@@ -73,9 +77,9 @@ def top_constructors(
     season_item = _season_or_404(db, season)
     return (
         db.query(ConstructorStanding)
+        .options(selectinload(ConstructorStanding.constructor))
         .filter_by(season_id=season_item.id)
         .order_by(ConstructorStanding.position.asc())
         .limit(limit)
         .all()
     )
-

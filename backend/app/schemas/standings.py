@@ -2,6 +2,9 @@ from decimal import Decimal
 
 from pydantic import BaseModel
 
+from app.schemas.constructor import ConstructorResponse
+from app.schemas.driver import DriverResponse
+
 
 class DriverStandingBase(BaseModel):
     season_id: int
@@ -37,6 +40,8 @@ class DriverStandingUpdate(BaseModel):
 
 class DriverStandingResponse(DriverStandingBase):
     id: int
+    driver: DriverResponse | None = None
+    constructor: ConstructorResponse | None = None
 
     model_config = {"from_attributes": True}
 
@@ -67,6 +72,6 @@ class ConstructorStandingUpdate(BaseModel):
 
 class ConstructorStandingResponse(ConstructorStandingBase):
     id: int
+    constructor: ConstructorResponse | None = None
 
     model_config = {"from_attributes": True}
-
