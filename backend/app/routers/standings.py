@@ -6,9 +6,11 @@ from app.core.dependencies import get_db
 from app.models.season import Season
 from app.models.standings import ConstructorStanding, DriverStanding
 from app.schemas.standings import ConstructorStandingResponse, DriverStandingResponse
+from app.services.auto_sync_service import AutoSyncService
 
 
 router = APIRouter(prefix="/api/standings", tags=["standings"])
+auto_sync = AutoSyncService()
 
 
 def _season_or_404(db: Session, year: int) -> Season:
@@ -22,10 +24,11 @@ def _season_or_404(db: Session, year: int) -> Season:
 
 
 @router.get("/drivers", response_model=list[DriverStandingResponse])
-def driver_standings(
+async def driver_standings(
     season: int = Query(...),
     db: Session = Depends(get_db),
 ) -> list[DriverStanding]:
+    await auto_sync.ensure_standings(db, season)
     season_item = _season_or_404(db, season)
     return (
         db.query(DriverStanding)
@@ -37,10 +40,11 @@ def driver_standings(
 
 
 @router.get("/constructors", response_model=list[ConstructorStandingResponse])
-def constructor_standings(
+async def constructor_standings(
     season: int = Query(...),
     db: Session = Depends(get_db),
 ) -> list[ConstructorStanding]:
+    await auto_sync.ensure_standings(db, season)
     season_item = _season_or_404(db, season)
     return (
         db.query(ConstructorStanding)
@@ -52,11 +56,12 @@ def constructor_standings(
 
 
 @router.get("/top-drivers", response_model=list[DriverStandingResponse])
-def top_drivers(
+async def top_drivers(
     season: int = Query(...),
     limit: int = Query(3, ge=1, le=50),
     db: Session = Depends(get_db),
 ) -> list[DriverStanding]:
+    await auto_sync.ensure_standings(db, season)
     season_item = _season_or_404(db, season)
     return (
         db.query(DriverStanding)
@@ -69,11 +74,12 @@ def top_drivers(
 
 
 @router.get("/top-constructors", response_model=list[ConstructorStandingResponse])
-def top_constructors(
+async def top_constructors(
     season: int = Query(...),
     limit: int = Query(3, ge=1, le=50),
     db: Session = Depends(get_db),
 ) -> list[ConstructorStanding]:
+    await auto_sync.ensure_standings(db, season)
     season_item = _season_or_404(db, season)
     return (
         db.query(ConstructorStanding)

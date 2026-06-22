@@ -7,15 +7,17 @@ from app.models.season import Season
 from app.models.standings import DriverStanding
 from app.schemas.driver import DriverResponse
 from app.schemas.standings import DriverStandingResponse
+from app.services.auto_sync_service import AutoSyncService
 from app.utils.helpers import get_or_404
 
 router = APIRouter(prefix="/api/drivers", tags=["drivers"])
+auto_sync = AutoSyncService()
 
 _MAX_LIMIT = 200
 
 
 @router.get("", response_model=list[DriverResponse])
-def list_drivers(
+async def list_drivers(
     season: int | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=_MAX_LIMIT),
@@ -23,6 +25,8 @@ def list_drivers(
 ) -> list[Driver]:
     query = db.query(Driver)
     if season is not None:
+        await auto_sync.ensure_drivers(db, season)
+        await auto_sync.ensure_standings(db, season)
         season_item = db.query(Season).filter_by(year=season).first()
         if season_item is None:
             return []
@@ -40,12 +44,13 @@ def get_driver(driver_id: int, db: Session = Depends(get_db)) -> Driver:
 
 
 @router.get("/{driver_id}/stats", response_model=DriverStandingResponse)
-def get_driver_stats(
+async def get_driver_stats(
     driver_id: int,
     season: int = Query(...),
     db: Session = Depends(get_db),
 ) -> DriverStanding:
     get_or_404(db, Driver, driver_id, "Driver")
+    await auto_sync.ensure_standings(db, season)
     season_item = db.query(Season).filter_by(year=season).first()
     if season_item is None:
         raise HTTPException(

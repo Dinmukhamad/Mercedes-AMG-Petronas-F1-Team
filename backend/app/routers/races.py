@@ -15,15 +15,17 @@ from app.schemas.race import (
     RaceResultResponse,
 )
 from app.schemas.video import VideoResponse
+from app.services.auto_sync_service import AutoSyncService
 from app.utils.helpers import get_or_404
 
 router = APIRouter(prefix="/api/races", tags=["races"])
+auto_sync = AutoSyncService()
 
 _MAX_LIMIT = 200
 
 
 @router.get("", response_model=list[RaceResponse])
-def list_races(
+async def list_races(
     season: int | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=_MAX_LIMIT),
@@ -31,6 +33,7 @@ def list_races(
 ) -> list[Race]:
     query = db.query(Race)
     if season is not None:
+        await auto_sync.ensure_races(db, season)
         season_item = db.query(Season).filter_by(year=season).first()
         if season_item is None:
             return []
@@ -44,8 +47,9 @@ def get_race(race_id: int, db: Session = Depends(get_db)) -> Race:
 
 
 @router.get("/{race_id}/results", response_model=list[RaceResultResponse])
-def race_results(race_id: int, db: Session = Depends(get_db)) -> list[RaceResult]:
+async def race_results(race_id: int, db: Session = Depends(get_db)) -> list[RaceResult]:
     get_or_404(db, Race, race_id, "Race")
+    await auto_sync.ensure_race_details(db, race_id)
     return (
         db.query(RaceResult)
         .options(selectinload(RaceResult.driver), selectinload(RaceResult.constructor))
@@ -56,8 +60,9 @@ def race_results(race_id: int, db: Session = Depends(get_db)) -> list[RaceResult
 
 
 @router.get("/{race_id}/qualifying", response_model=list[QualifyingResultResponse])
-def qualifying_results(race_id: int, db: Session = Depends(get_db)) -> list[QualifyingResult]:
+async def qualifying_results(race_id: int, db: Session = Depends(get_db)) -> list[QualifyingResult]:
     get_or_404(db, Race, race_id, "Race")
+    await auto_sync.ensure_race_details(db, race_id)
     return (
         db.query(QualifyingResult)
         .options(selectinload(QualifyingResult.driver), selectinload(QualifyingResult.constructor))
@@ -68,8 +73,9 @@ def qualifying_results(race_id: int, db: Session = Depends(get_db)) -> list[Qual
 
 
 @router.get("/{race_id}/practice", response_model=list[PracticeResultResponse])
-def practice_results(race_id: int, db: Session = Depends(get_db)) -> list[PracticeResult]:
+async def practice_results(race_id: int, db: Session = Depends(get_db)) -> list[PracticeResult]:
     get_or_404(db, Race, race_id, "Race")
+    await auto_sync.ensure_race_details(db, race_id)
     return (
         db.query(PracticeResult)
         .options(selectinload(PracticeResult.driver), selectinload(PracticeResult.constructor))

@@ -19,9 +19,11 @@ from app.schemas.race import RaceResponse
 from app.schemas.season import SeasonResponse
 from app.schemas.standings import ConstructorStandingResponse, DriverStandingResponse
 from app.schemas.video import VideoResponse
+from app.services.auto_sync_service import AutoSyncService
 
 
 router = APIRouter(prefix="/api", tags=["home"])
+auto_sync = AutoSyncService()
 
 SchemaT = TypeVar("SchemaT", bound=BaseModel)
 
@@ -35,10 +37,12 @@ def _dump_many(schema: type[SchemaT], items: list[Any]) -> list[dict[str, Any]]:
 
 
 @router.get("/home")
-def home_data(
+async def home_data(
     season: int = Query(...),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    await auto_sync.ensure_home_data(db, season)
+
     seasons = db.query(Season).order_by(Season.year.desc()).all()
     season_item = db.query(Season).filter_by(year=season).first()
 
