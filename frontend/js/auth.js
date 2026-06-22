@@ -191,28 +191,7 @@ function requireAuth() {
 }
 
 // Guard для страниц, требующих роли admin
-async function requireAdmin() {
-  if (!AuthState.isLoggedIn()) {
-    window.location.href = '/login.html';
-    return false;
-  }
-
-  try {
-    const user = await Auth.me();
-    AuthState.save(AuthState.getToken(), user);
-    if (user.role === 'admin') return true;
-  } catch (_) {
-    AuthState.clear();
-    window.location.href = '/login.html';
-    return false;
-  }
-
-  AuthState.clear();
-  window.location.href = '/index.html';
-  return false;
-}
-
-function requireLocalAdmin() {
+function requireAdmin() {
   if (!AuthState.isAdmin()) {
     window.location.href = '/index.html';
     return false;

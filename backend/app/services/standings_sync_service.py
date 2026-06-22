@@ -1,15 +1,19 @@
 from sqlalchemy.orm import Session
 
+from app.models.constructor import Constructor
+from app.models.driver import Driver
 from app.models.season import Season
 from app.models.standings import ConstructorStanding, DriverStanding
 from app.services.jolpica_service import JolpicaService
 from app.services.sync_helpers import (
     SyncResult,
+    parse_date,
     parse_decimal,
     parse_int,
     record_sync_status,
-    upsert_constructor_from_jolpica,
+    upsert_by_external_id,
     upsert_driver_from_jolpica,
+    upsert_constructor_from_jolpica,
 )
 
 
@@ -51,9 +55,9 @@ class StandingsSyncService:
             return 0
         count = 0
         for item in lists[0].get("DriverStandings", []):
-            driver = upsert_driver_from_jolpica(db, item.get("Driver", {}))
+            driver = self._upsert_driver(db, item.get("Driver", {}))
             constructors = item.get("Constructors", [])
-            constructor = upsert_constructor_from_jolpica(db, constructors[0]) if constructors else None
+            constructor = self._upsert_constructor(db, constructors[0]) if constructors else None
             existing = (
                 db.query(DriverStanding)
                 .filter_by(season_id=season.id, driver_id=driver.id)
@@ -91,7 +95,7 @@ class StandingsSyncService:
             return 0
         count = 0
         for item in lists[0].get("ConstructorStandings", []):
-            constructor = upsert_constructor_from_jolpica(db, item.get("Constructor", {}))
+            constructor = self._upsert_constructor(db, item.get("Constructor", {}))
             if constructor is None:
                 continue
             existing = (
@@ -115,4 +119,10 @@ class StandingsSyncService:
                 db.add(ConstructorStanding(**data))
             count += 1
         return count
+
+    def _upsert_driver(self, db: Session, payload: dict) -> Driver:
+        return upsert_driver_from_jolpica(db, payload)
+
+    def _upsert_constructor(self, db: Session, payload: dict) -> Constructor | None:
+        return upsert_constructor_from_jolpica(db, payload)
 

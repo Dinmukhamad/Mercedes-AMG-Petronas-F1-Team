@@ -52,15 +52,50 @@ function showPanel(panelName, linkEl) {
 // ============================================
 
 async function loadSyncStatus() {
-  const badge = document.getElementById('sync-status-badge');
+  const badge   = document.getElementById('sync-status-badge');
+  const tableEl = document.getElementById('sync-status-table');
   try {
-    const status = await Admin.syncStatus();
-    if (!badge) return;
-    if (status?.is_syncing) {
-      badge.innerHTML = `<span class="badge badge-teal"><span class="pulse-dot"></span> Синхронизация...</span>`;
-    } else {
-      const last = status?.last_sync_at ? formatDate(status.last_sync_at) : 'никогда';
-      badge.innerHTML = `<span class="badge badge-success">✓ Готово · ${last}</span>`;
+    // API returns list[SyncStatusResponse]
+    const statuses = await Admin.syncStatus();
+    if (!Array.isArray(statuses)) return;
+
+    // Badge: show last updated entry
+    if (badge) {
+      const last = statuses.reduce((a, b) =>
+        new Date(a.updated_at) > new Date(b.updated_at) ? a : b, statuses[0]);
+      const hasError = statuses.some(s => !s.success);
+      const lastDate = last?.updated_at ? formatDate(last.updated_at) : 'никогда';
+      badge.innerHTML = hasError
+        ? `<span class="badge badge-error">⚠ Ошибка · ${lastDate}</span>`
+        : `<span class="badge badge-success">✓ Готово · ${lastDate}</span>`;
+    }
+
+    // Table: show all sync tasks
+    if (tableEl) {
+      tableEl.innerHTML = `
+        <table style="width:100%;font-size:.85rem;">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 8px;">Задача</th>
+            <th style="text-align:center;padding:6px 8px;">Статус</th>
+            <th style="text-align:right;padding:6px 8px;">Записей</th>
+            <th style="text-align:right;padding:6px 8px;">Обновлено</th>
+          </tr></thead>
+          <tbody>
+            ${statuses.map(s => `
+              <tr>
+                <td style="padding:6px 8px;font-family:var(--font-mono,monospace);font-size:.8rem;">${escapeHtml(s.name)}</td>
+                <td style="padding:6px 8px;text-align:center;">
+                  ${s.success
+                    ? '<span class="badge badge-success">✓</span>'
+                    : `<span class="badge badge-error" title="${escapeHtml(s.message||'')}">✕</span>`}
+                </td>
+                <td style="padding:6px 8px;text-align:right;">${s.synced_count ?? 0}</td>
+                <td style="padding:6px 8px;text-align:right;color:var(--text-muted);">${s.updated_at ? formatDate(s.updated_at) : '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
     }
   } catch (_) {
     if (badge) badge.innerHTML = `<span class="badge badge-silver">Статус недоступен</span>`;
@@ -70,9 +105,12 @@ async function loadSyncStatus() {
 async function runSync(type) {
   addSyncLog(`▶ Запуск синхронизации: ${type}...`);
   try {
-    const result = await Admin.syncSeasons();
+    let result;
+    if (type === 'seasons') result = await Admin.syncSeasons();
+    else { showToast('Неизвестный тип синхронизации', 'error'); return; }
     addSyncLog(`✓ ${type}: ${JSON.stringify(result)}`);
     showToast('Синхронизация запущена', 'success');
+    await loadSyncStatus();
   } catch (err) {
     addSyncLog(`✕ Ошибка: ${err.message}`);
     showToast(err.message, 'error');
@@ -372,15 +410,19 @@ async function loadAdminDrivers() {
         <table>
           <thead><tr><th>#</th><th>Гонщик</th><th>Команда</th><th>Статус</th><th style="width:80px;"></th></tr></thead>
           <tbody>
-            ${(drivers || []).map(d => `
+            ${(drivers || []).map(d => {
+              const name = getDriverName(d, '—');
+              const team = getConstructorName(d, '—');
+              return `
               <tr>
                 <td class="muted">${d.driver_number || '—'}</td>
-                <td>${escapeHtml(d.first_name + ' ' + d.last_name)}</td>
-                <td class="muted" style="font-size:.82rem;">${escapeHtml(d.team?.name || d.constructor?.name || '—')}</td>
+                <td>${escapeHtml(name)}</td>
+                <td class="muted" style="font-size:.82rem;">${escapeHtml(team)}</td>
                 <td>${getDriverStatusBadge(d.status)}</td>
                 <td><button class="btn btn-danger btn-sm" onclick="deleteDriver(${d.id})">✕</button></td>
               </tr>
-            `).join('')}
+            `;
+            }).join('')}
           </tbody>
         </table>
       </div>

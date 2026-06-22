@@ -5,8 +5,6 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models.constructor import Constructor
-from app.models.driver import Driver
 from app.models.sync_status import SyncStatus
 
 
@@ -67,7 +65,29 @@ def upsert_by_external_id(db: Session, model: type, external_id: str, data: dict
     return item, True
 
 
-def upsert_driver_from_jolpica(db: Session, payload: dict[str, Any]) -> Driver:
+def record_sync_status(db: Session, name: str, result: SyncResult) -> None:
+    status = db.query(SyncStatus).filter_by(name=name).first()
+    now = datetime.now(timezone.utc)
+    if status is None:
+        status = SyncStatus(name=name)
+        db.add(status)
+    status.success = result.success
+    status.message = result.message
+    status.details = result.details
+    status.synced_count = result.synced_count
+    if result.success:
+        status.last_success_at = now
+    status.updated_at = now
+    db.commit()
+
+
+
+# ── Shared upsert helpers (устраняют дублирование в RaceSyncService / StandingsSyncService) ──
+
+def upsert_driver_from_jolpica(db: Session, payload: dict[str, Any]) -> "Driver":
+    """Создаёт или обновляет гонщика по данным Jolpica/Ergast API."""
+    from app.models.driver import Driver
+
     external_id = payload.get("driverId") or f"driver-{payload.get('code')}"
     first_name = payload.get("givenName") or ""
     last_name = payload.get("familyName") or ""
@@ -87,10 +107,10 @@ def upsert_driver_from_jolpica(db: Session, payload: dict[str, Any]) -> Driver:
     return driver
 
 
-def upsert_constructor_from_jolpica(
-    db: Session,
-    payload: dict[str, Any],
-) -> Constructor | None:
+def upsert_constructor_from_jolpica(db: Session, payload: dict[str, Any]) -> "Constructor | None":
+    """Создаёт или обновляет команду по данным Jolpica/Ergast API."""
+    from app.models.constructor import Constructor
+
     external_id = payload.get("constructorId")
     if not external_id:
         return None
@@ -105,19 +125,3 @@ def upsert_constructor_from_jolpica(
     constructor, _ = upsert_by_external_id(db, Constructor, external_id, data)
     db.flush()
     return constructor
-
-
-def record_sync_status(db: Session, name: str, result: SyncResult) -> None:
-    status = db.query(SyncStatus).filter_by(name=name).first()
-    now = datetime.now(timezone.utc)
-    if status is None:
-        status = SyncStatus(name=name)
-        db.add(status)
-    status.success = result.success
-    status.message = result.message
-    status.details = result.details
-    status.synced_count = result.synced_count
-    if result.success:
-        status.last_success_at = now
-    status.updated_at = now
-    db.commit()

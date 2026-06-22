@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Гонка — F1 Statistics Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="description" content="Результаты и детали Гран-при Формулы-1.">
+  <meta name="theme-color" content="#081013">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="dns-prefetch" href="https://f1-dashboard-backend-ri9z.onrender.com">
+  <link rel="stylesheet" href="css/style.min.css">
 </head>
 <body>
 
@@ -139,11 +145,6 @@
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/api.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/main.js"></script>
-<script src="js/charts.js"></script>
 <script>
 // ========= race-detail.js inlined =========
 
@@ -235,8 +236,8 @@ function renderRacePodium(top3) {
       ${order.map(r => {
         const pos  = r.position;
         const cls  = ['','p1','p2','p3'][pos] || '';
-        const name = r.driver ? `${r.driver.first_name} ${r.driver.last_name}` : '—';
-        const team = r.constructor?.name || '—';
+        const name = getDriverName(r, '—');
+        const team = getConstructorName(r, '—');
         const photo = r.driver?.photo_url || '';
         return `
           <div class="podium-card ${cls}">
@@ -272,8 +273,8 @@ function renderResultsTable(container, results) {
       </thead>
       <tbody>
         ${results.map(r => {
-          const name     = r.driver ? `${r.driver.first_name} ${r.driver.last_name}` : '—';
-          const team     = r.constructor?.name || '—';
+          const name     = getDriverName(r, '—');
+          const team     = getConstructorName(r, '—');
           const isFastest = r.fastest_lap && r.fastest_lap === fastestLapDriver?.fastest_lap;
           return `
             <tr class="${getRowHighlight(r.position)} ${isFastest ? 'fastest-lap-row' : ''}">
@@ -311,8 +312,8 @@ async function loadQualifying(raceId) {
           ${results.map(r => `
             <tr class="${getRowHighlight(r.position)}">
               <td class="table-position"><span class="${getPositionClass(r.position)}">${r.position}</span></td>
-              <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-primary);font-weight:600;">${escapeHtml(r.driver ? r.driver.first_name + ' ' + r.driver.last_name : '—')}</a></td>
-              <td class="muted">${escapeHtml(r.constructor?.name || '—')}</td>
+              <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-primary);font-weight:600;">${escapeHtml(getDriverName(r, '—'))}</a></td>
+              <td class="muted">${escapeHtml(getConstructorName(r, '—'))}</td>
               <td class="muted number" style="font-size:.82rem;">${r.q1 || '—'}</td>
               <td class="muted number" style="font-size:.82rem;">${r.q2 || '—'}</td>
               <td class="number" style="font-size:.82rem;color:var(--teal);">${r.q3 || '—'}</td>
@@ -340,8 +341,8 @@ async function loadPractice(raceId, session) {
           ${results.map(r => `
             <tr class="${getRowHighlight(r.position)}">
               <td class="table-position"><span class="${getPositionClass(r.position)}">${r.position}</span></td>
-              <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-primary);font-weight:600;">${escapeHtml(r.driver ? r.driver.first_name + ' ' + r.driver.last_name : '—')}</a></td>
-              <td class="muted">${escapeHtml(r.constructor?.name || '—')}</td>
+              <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-primary);font-weight:600;">${escapeHtml(getDriverName(r, '—'))}</a></td>
+              <td class="muted">${escapeHtml(getConstructorName(r, '—'))}</td>
               <td class="text-right number" style="color:var(--teal);">${r.lap_time || '—'}</td>
             </tr>
           `).join('')}

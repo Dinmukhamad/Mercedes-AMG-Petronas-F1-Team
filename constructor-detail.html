@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Команда — F1 Statistics Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="description" content="Профиль команды Формулы-1 — статистика и результаты сезона.">
+  <meta name="theme-color" content="#081013">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="dns-prefetch" href="https://f1-dashboard-backend-ri9z.onrender.com">
+  <link rel="stylesheet" href="css/style.min.css">
 </head>
 <body>
 
@@ -90,11 +96,6 @@
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/api.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/main.js"></script>
-<script src="js/charts.js"></script>
 <script>
 // ===== constructor-detail.js inlined =====
 
@@ -130,7 +131,7 @@ async function loadConstructorDetail(constructorId, season) {
       const data1    = (stats.race_results || []).filter(r => r.driver_id === d1.id).map(r => r.points || 0);
       const data2    = (stats.race_results || []).filter(r => r.driver_id === d2.id).map(r => r.points || 0);
       if (data1.length && data2.length) {
-        renderTeammatesChart('chart-teammates', d1.last_name, d2.last_name,
+        renderTeammatesChart('chart-teammates', getDriverLastName(d1, '—'), getDriverLastName(d2, '—'),
           labels.slice(0, Math.max(data1.length, data2.length)), data1, data2);
       }
     }
@@ -140,7 +141,7 @@ async function loadConstructorDetail(constructorId, season) {
 }
 
 function renderConstructorHero(container, con, stats) {
-  const name    = con.name || '—';
+  const name    = getConstructorName(con, '—');
   const logo    = con.logo_url || '';
   const carImg  = con.car_image_url || '';
   const pos     = stats?.position || '—';
@@ -218,7 +219,7 @@ function renderTeamDrivers(con, stats) {
   const drivers = stats?.drivers || con.drivers || [];
   if (!drivers.length) { showEmpty(container, 'Пилоты не найдены'); return; }
   container.innerHTML = drivers.map(d => {
-    const name  = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+    const name  = getDriverName(d, '—');
     const photo = d.photo_url || '';
     const pts   = d.points || 0;
     const pos   = d.position || '—';
@@ -255,7 +256,7 @@ function renderTeamResults(results) {
           <tr class="${getRowHighlight(r.position)}">
             <td class="muted">${r.race?.round || '—'}</td>
             <td><a href="/race-detail.html?id=${r.race_id}" style="color:var(--text-primary);">${escapeHtml(r.race?.name || '—')}</a></td>
-            <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-secondary);font-size:.85rem;">${escapeHtml(r.driver ? r.driver.first_name + ' ' + r.driver.last_name : '—')}</a></td>
+            <td><a href="/driver-detail.html?id=${r.driver_id}" style="color:var(--text-secondary);font-size:.85rem;">${escapeHtml(getDriverName(r, '—'))}</a></td>
             <td class="text-right muted">${r.grid_position || '—'}</td>
             <td class="text-right"><span class="${getPositionClass(r.position)}">${r.position || 'DNF'}</span></td>
             <td class="text-right number" style="color:var(--teal)">${r.points || 0}</td>

@@ -33,14 +33,14 @@ async function loadOverviewStats(season) {
 
     if (driverStandings?.length) {
       const leader = driverStandings[0];
-      const name = leader.driver?.last_name || leader.full_name || '—';
+      const name = getDriverLastName(leader, '—');
       document.getElementById('stat-leader').textContent     = name;
       document.getElementById('stat-leader-pts').textContent = `${leader.points} очков`;
     }
 
     if (constructorStandings?.length) {
       const team = constructorStandings[0];
-      const name = team.constructor?.name || team.name || '—';
+      const name = getConstructorName(team, '—');
       document.getElementById('stat-team-leader').textContent = name;
       document.getElementById('stat-team-pts').textContent    = `${team.points} очков`;
     }
@@ -89,8 +89,8 @@ function renderPodium(container, drivers) {
       ${ordered.map((d, i) => {
         const realPos = d.position;
         const cls = rankClass[realPos - 1] || '';
-        const name   = d.driver ? `${d.driver.first_name} ${d.driver.last_name}` : d.full_name || '—';
-        const team   = d.constructor?.name || '—';
+        const name   = getDriverName(d, '—');
+        const team   = getConstructorName(d, '—');
         const photo  = d.driver?.photo_url || '';
         return `
           <div class="podium-card ${cls} animate-in animate-in-delay-${i+1}">

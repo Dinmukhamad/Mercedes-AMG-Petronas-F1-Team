@@ -5,7 +5,7 @@
 let _syncLog = [];
 
 async function initAdminPage() {
-  if (!(await requireAdmin())) return;
+  if (!requireAdmin()) return;
 
   // Populate season selects
   const seasons = await loadSeasons();
@@ -52,57 +52,53 @@ function showPanel(panelName, linkEl) {
 // ============================================
 
 async function loadSyncStatus() {
-  const badge = document.getElementById('sync-status-badge');
-  let tableWrap = document.getElementById('sync-status-table');
+  const badge   = document.getElementById('sync-status-badge');
+  const tableEl = document.getElementById('sync-status-table');
   try {
+    // API returns list[SyncStatusResponse]
     const statuses = await Admin.syncStatus();
-    if (!badge) return;
-    const hasErrors = (statuses || []).some(item => !item.success);
-    badge.innerHTML = hasErrors
-      ? `<span class="badge badge-warning">Есть ошибки синхронизации</span>`
-      : `<span class="badge badge-success">Готово</span>`;
+    if (!Array.isArray(statuses)) return;
 
-    if (!tableWrap) {
-      tableWrap = document.createElement('div');
-      tableWrap.id = 'sync-status-table';
-      tableWrap.style.marginTop = '16px';
-      badge.closest('.admin-page-header')?.insertAdjacentElement('afterend', tableWrap);
+    // Badge: show last updated entry
+    if (badge) {
+      const last = statuses.reduce((a, b) =>
+        new Date(a.updated_at) > new Date(b.updated_at) ? a : b, statuses[0]);
+      const hasError = statuses.some(s => !s.success);
+      const lastDate = last?.updated_at ? formatDate(last.updated_at) : 'никогда';
+      badge.innerHTML = hasError
+        ? `<span class="badge badge-error">⚠ Ошибка · ${lastDate}</span>`
+        : `<span class="badge badge-success">✓ Готово · ${lastDate}</span>`;
     }
 
-    if (!statuses?.length) {
-      tableWrap.innerHTML = '';
-      return;
-    }
-
-    tableWrap.innerHTML = `
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Задача</th>
-              <th>Статус</th>
-              <th>Синхронизировано</th>
-              <th>Последний запуск</th>
-              <th>Сообщение</th>
-            </tr>
-          </thead>
+    // Table: show all sync tasks
+    if (tableEl) {
+      tableEl.innerHTML = `
+        <table style="width:100%;font-size:.85rem;">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 8px;">Задача</th>
+            <th style="text-align:center;padding:6px 8px;">Статус</th>
+            <th style="text-align:right;padding:6px 8px;">Записей</th>
+            <th style="text-align:right;padding:6px 8px;">Обновлено</th>
+          </tr></thead>
           <tbody>
-            ${statuses.slice(0, 8).map(item => `
+            ${statuses.map(s => `
               <tr>
-                <td><strong>${escapeHtml(item.name)}</strong></td>
-                <td>${item.success ? '<span class="badge badge-success">Успех</span>' : '<span class="badge badge-error">Ошибка</span>'}</td>
-                <td class="number">${item.synced_count ?? 0}</td>
-                <td class="muted">${formatSyncDate(item.updated_at)}</td>
-                <td class="muted">${escapeHtml(item.message || '—')}</td>
+                <td style="padding:6px 8px;font-family:var(--font-mono,monospace);font-size:.8rem;">${escapeHtml(s.name)}</td>
+                <td style="padding:6px 8px;text-align:center;">
+                  ${s.success
+                    ? '<span class="badge badge-success">✓</span>'
+                    : `<span class="badge badge-error" title="${escapeHtml(s.message||'')}">✕</span>`}
+                </td>
+                <td style="padding:6px 8px;text-align:right;">${s.synced_count ?? 0}</td>
+                <td style="padding:6px 8px;text-align:right;color:var(--text-muted);">${s.updated_at ? formatDate(s.updated_at) : '—'}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
-      </div>
-    `;
+      `;
+    }
   } catch (_) {
     if (badge) badge.innerHTML = `<span class="badge badge-silver">Статус недоступен</span>`;
-    if (tableWrap) tableWrap.innerHTML = '';
   }
 }
 
@@ -111,12 +107,7 @@ async function runSync(type) {
   try {
     let result;
     if (type === 'seasons') result = await Admin.syncSeasons();
-    else {
-      console.warn('Unknown sync type:', type);
-      showToast('Неизвестный тип синхронизации', 'warning');
-      return;
-    }
-
+    else { showToast('Неизвестный тип синхронизации', 'error'); return; }
     addSyncLog(`✓ ${type}: ${JSON.stringify(result)}`);
     showToast('Синхронизация запущена', 'success');
     await loadSyncStatus();
@@ -137,15 +128,9 @@ async function runSyncSeason(type) {
     if (type === 'constructors') result = await Admin.syncConstructors(season);
     if (type === 'races')        result = await Admin.syncRaces(season);
     if (type === 'standings')    result = await Admin.syncStandings(season);
-    if (!result) {
-      console.warn('Unknown season sync type:', type);
-      showToast('Неизвестный тип синхронизации', 'warning');
-      return;
-    }
 
     addSyncLog(`✓ Готово: ${JSON.stringify(result)}`);
     showToast(`Синхронизация ${type} запущена`, 'success');
-    await loadSyncStatus();
   } catch (err) {
     addSyncLog(`✕ Ошибка: ${err.message}`);
     showToast(err.message, 'error');
@@ -161,7 +146,6 @@ async function runSyncRace() {
     const result = await Admin.syncRace(raceId);
     addSyncLog(`✓ Готово: ${JSON.stringify(result)}`);
     showToast(`Гонка ${raceId} синхронизирована`, 'success');
-    await loadSyncStatus();
   } catch (err) {
     addSyncLog(`✕ Ошибка: ${err.message}`);
     showToast(err.message, 'error');
@@ -174,19 +158,6 @@ function addSyncLog(message) {
   const time = new Date().toLocaleTimeString('ru-RU');
   _syncLog.unshift(`[${time}] ${message}`);
   log.textContent = _syncLog.join('\n');
-}
-
-function formatSyncDate(value) {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 // ============================================

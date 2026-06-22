@@ -27,14 +27,6 @@ copy .env.example .env
 ```
 
 Edit `.env` and set `DATABASE_URL`, `SECRET_KEY`, and `CORS_ORIGINS`.
-`DATABASE_URL` and `SECRET_KEY` are required; the API will not start without
-them.
-
-Generate a safe JWT secret:
-
-```bash
-openssl rand -hex 32
-```
 
 Create PostgreSQL database:
 
@@ -72,30 +64,30 @@ ReDoc: http://localhost:8000/redoc
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
-- `GET /api/seasons?skip=0&limit=50`
+- `GET /api/seasons`
 - `GET /api/seasons/{year}`
-- `GET /api/drivers?season=2025&skip=0&limit=50`
+- `GET /api/drivers?season=2025`
 - `GET /api/drivers/{id}`
 - `GET /api/drivers/{id}/stats?season=2025`
-- `GET /api/constructors?season=2025&skip=0&limit=50`
+- `GET /api/constructors?season=2025`
 - `GET /api/constructors/{id}`
 - `GET /api/constructors/{id}/stats?season=2025`
-- `GET /api/standings/drivers?season=2025&skip=0&limit=50`
-- `GET /api/standings/constructors?season=2025&skip=0&limit=50`
+- `GET /api/standings/drivers?season=2025`
+- `GET /api/standings/constructors?season=2025`
 - `GET /api/standings/top-drivers?season=2025&limit=3`
 - `GET /api/standings/top-constructors?season=2025&limit=3`
-- `GET /api/races?season=2025&skip=0&limit=50`
+- `GET /api/races?season=2025`
 - `GET /api/races/{id}`
 - `GET /api/races/{id}/results`
 - `GET /api/races/{id}/qualifying`
 - `GET /api/races/{id}/practice`
 - `GET /api/races/{id}/videos`
 - `GET /api/races/{id}/gallery`
-- `GET /api/videos?season=2025&skip=0&limit=50`
-- `GET /api/videos?season=2025&race_id=1&skip=0&limit=50`
+- `GET /api/videos?season=2025`
+- `GET /api/videos?season=2025&race_id=1`
 - `GET /api/videos/{id}`
-- `GET /api/gallery?season=2025&skip=0&limit=50`
-- `GET /api/gallery?season=2025&race_id=1&skip=0&limit=50`
+- `GET /api/gallery?season=2025`
+- `GET /api/gallery?season=2025&race_id=1`
 - `GET /api/gallery/{id}`
 - `GET /api/favorites`
 - `POST /api/favorites/drivers/{driver_id}`
@@ -132,3 +124,4 @@ UPDATE users SET role = 'admin' WHERE email = 'admin@example.com';
 ```
 
 Then log in through `/api/auth/login` and use the returned JWT token.
+

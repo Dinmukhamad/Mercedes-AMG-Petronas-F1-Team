@@ -7,20 +7,24 @@ from app.config import settings
 
 
 class OpenF1Service:
-    _client: httpx.AsyncClient | None = None
+    """HTTP-клиент создаётся один раз и переиспользуется для connection pooling."""
 
     def __init__(self) -> None:
         self.base_url = f"{settings.openf1_base_url.rstrip('/')}/"
+        self._client: httpx.AsyncClient | None = None
 
     def _get_client(self) -> httpx.AsyncClient:
-        if self.__class__._client is None or self.__class__._client.is_closed:
-            self.__class__._client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
-        return self.__class__._client
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                base_url=self.base_url,
+                timeout=30.0,
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+            )
+        return self._client
 
-    @classmethod
-    async def close_client(cls) -> None:
-        if cls._client is not None and not cls._client.is_closed:
-            await cls._client.aclose()
+    async def aclose(self) -> None:
+        if self._client and not self._client.is_closed:
+            await self._client.aclose()
 
     @retry(
         retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError)),
@@ -33,7 +37,8 @@ class OpenF1Service:
         path: str,
         params: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
-        response = await self._get_client().get(path.lstrip("/"), params=params or {})
+        client = self._get_client()
+        response = await client.get(path.lstrip("/"), params=params or {})
         response.raise_for_status()
         data = response.json()
         return data if isinstance(data, list) else []

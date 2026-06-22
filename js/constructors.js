@@ -62,7 +62,7 @@ function renderConstructorsTable(container, standings) {
         ${standings.map(s => {
           const pos  = s.position;
           const con  = s.constructor || {};
-          const name = con.name || s.name || '—';
+          const name = getConstructorName(s, '—');
           const logo = con.logo_url || '';
           const carImg = con.car_image_url || '';
           const cId  = s.constructor_id;
@@ -113,14 +113,14 @@ function applyFilters() {
   const sortBy  = document.getElementById('sort-by')?.value || 'points';
 
   let filtered = _allConstructorStandings.filter(s => {
-    const name = (s.constructor?.name || s.name || '').toLowerCase();
+    const name = getConstructorName(s, '').toLowerCase();
     if (query && !name.includes(query)) return false;
     if (country && s.constructor?.nationality !== country) return false;
     return true;
   });
 
   if (sortBy === 'wins')  filtered.sort((a, b) => (b.wins || 0) - (a.wins || 0));
-  if (sortBy === 'name')  filtered.sort((a, b) => (a.constructor?.name || '').localeCompare(b.constructor?.name || '', 'ru'));
+  if (sortBy === 'name')  filtered.sort((a, b) => getConstructorName(a, '').localeCompare(getConstructorName(b, ''), 'ru'));
 
   renderConstructorsTable(document.getElementById('constructors-table-wrap'), filtered);
 }

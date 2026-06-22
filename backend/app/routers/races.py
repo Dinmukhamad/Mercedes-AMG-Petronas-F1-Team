@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-from sqlalchemy.orm import selectinload
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.dependencies import get_db
 from app.models.gallery import GalleryImage
@@ -18,15 +17,16 @@ from app.schemas.race import (
 from app.schemas.video import VideoResponse
 from app.utils.helpers import get_or_404
 
-
 router = APIRouter(prefix="/api/races", tags=["races"])
+
+_MAX_LIMIT = 200
 
 
 @router.get("", response_model=list[RaceResponse])
 def list_races(
     season: int | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=50, ge=1, le=_MAX_LIMIT),
     db: Session = Depends(get_db),
 ) -> list[Race]:
     query = db.query(Race)
@@ -56,10 +56,7 @@ def race_results(race_id: int, db: Session = Depends(get_db)) -> list[RaceResult
 
 
 @router.get("/{race_id}/qualifying", response_model=list[QualifyingResultResponse])
-def qualifying_results(
-    race_id: int,
-    db: Session = Depends(get_db),
-) -> list[QualifyingResult]:
+def qualifying_results(race_id: int, db: Session = Depends(get_db)) -> list[QualifyingResult]:
     get_or_404(db, Race, race_id, "Race")
     return (
         db.query(QualifyingResult)
@@ -83,36 +80,17 @@ def practice_results(race_id: int, db: Session = Depends(get_db)) -> list[Practi
 
 
 @router.get("/{race_id}/videos", response_model=list[VideoResponse])
-def race_videos(
-    race_id: int,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
-    db: Session = Depends(get_db),
-) -> list[Video]:
+def race_videos(race_id: int, db: Session = Depends(get_db)) -> list[Video]:
     get_or_404(db, Race, race_id, "Race")
-    return (
-        db.query(Video)
-        .filter_by(race_id=race_id)
-        .order_by(Video.published_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return db.query(Video).filter_by(race_id=race_id).order_by(Video.published_at.desc()).all()
 
 
 @router.get("/{race_id}/gallery", response_model=list[GalleryImageResponse])
-def race_gallery(
-    race_id: int,
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
-    db: Session = Depends(get_db),
-) -> list[GalleryImage]:
+def race_gallery(race_id: int, db: Session = Depends(get_db)) -> list[GalleryImage]:
     get_or_404(db, Race, race_id, "Race")
     return (
         db.query(GalleryImage)
         .filter_by(race_id=race_id)
         .order_by(GalleryImage.created_at.desc())
-        .offset(skip)
-        .limit(limit)
         .all()
     )

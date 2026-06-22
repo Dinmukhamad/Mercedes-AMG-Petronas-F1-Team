@@ -22,7 +22,7 @@ async function loadGallery(season) {
   _currentPage = 0;
 
   try {
-    _allPhotos = await Gallery.list({ season });
+    _allPhotos = await Gallery.list({ season, limit: 100 });
     populateRaceFilter();
     populateDriverFilter();
     applyFilters();
@@ -100,7 +100,8 @@ function buildLightboxCaption(photo, index) {
   const parts = [];
   if (photo.title) parts.push(photo.title);
   if (photo.race?.name) parts.push(photo.race.name);
-  if (photo.driver?.last_name) parts.push(photo.driver.first_name + ' ' + photo.driver.last_name);
+  const driverName = getDriverName(photo, '');
+  if (driverName) parts.push(driverName);
   parts.push(`${index + 1} / ${_filteredPhotos.length}`);
   return parts.join(' · ');
 }
@@ -158,7 +159,8 @@ function populateDriverFilter() {
   const drivers = {};
   _allPhotos.forEach(p => {
     if (p.driver_id && p.driver) {
-      drivers[p.driver_id] = `${p.driver.first_name} ${p.driver.last_name}`;
+      const name = getDriverName(p, '');
+      if (name) drivers[p.driver_id] = name;
     }
   });
   sel.innerHTML = '<option value="">Все гонщики</option>' +

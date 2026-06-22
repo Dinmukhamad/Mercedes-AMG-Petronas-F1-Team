@@ -7,7 +7,7 @@
 // ============================================
 
 const SeasonState = {
-  get:     () => parseInt(localStorage.getItem('f1_season') || '2025'),
+  get:     () => parseInt(localStorage.getItem('f1_season') || new Date().getFullYear()),
   set:     (year) => localStorage.setItem('f1_season', year),
 };
 
@@ -17,6 +17,12 @@ async function loadSeasons() {
   try {
     const data = await Seasons.list();
     _availableSeasons = data;
+    const years = data.map(s => s.year);
+    const savedYear = SeasonState.get();
+    if (years.length && !years.includes(savedYear)) {
+      const currentSeason = data.find(s => s.is_current) || data[0];
+      SeasonState.set(currentSeason.year);
+    }
     return data;
   } catch (_) {
     return [];
@@ -176,6 +182,25 @@ function escapeHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function getDriverName(item, fallback = '—') {
+  const driver = item?.driver || item;
+  if (!driver || typeof driver !== 'object') return fallback;
+  const fullName = driver.full_name || `${driver.first_name || ''} ${driver.last_name || ''}`.trim();
+  return fullName || item?.full_name || fallback;
+}
+
+function getDriverLastName(item, fallback = 'N/A') {
+  const driver = item?.driver || item;
+  if (!driver || typeof driver !== 'object') return fallback;
+  return driver.last_name || driver.full_name || getDriverName(item, fallback);
+}
+
+function getConstructorName(item, fallback = '—') {
+  const constructor = item?.constructor || item?.team || item;
+  if (!constructor || typeof constructor !== 'object') return fallback;
+  return constructor.name || item?.name || fallback;
 }
 
 function getQueryParam(name) {

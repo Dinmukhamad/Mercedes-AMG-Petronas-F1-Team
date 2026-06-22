@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.models.constructor import Constructor
 from app.models.driver import Driver
 from app.models.race import Race
 from app.models.race_result import PracticeResult, QualifyingResult, RaceResult
@@ -15,9 +16,9 @@ from app.services.sync_helpers import (
     parse_int,
     race_status,
     record_sync_status,
-    upsert_constructor_from_jolpica,
     upsert_by_external_id,
     upsert_driver_from_jolpica,
+    upsert_constructor_from_jolpica,
 )
 
 
@@ -103,8 +104,8 @@ class RaceSyncService:
         results = races[0].get("Results", [])
         count = 0
         for item in results:
-            driver = upsert_driver_from_jolpica(db, item.get("Driver", {}))
-            constructor = upsert_constructor_from_jolpica(db, item.get("Constructor", {}))
+            driver = self._upsert_driver_from_payload(db, item.get("Driver", {}))
+            constructor = self._upsert_constructor_from_payload(db, item.get("Constructor", {}))
             existing = (
                 db.query(RaceResult)
                 .filter_by(race_id=race.id, driver_id=driver.id)
@@ -139,8 +140,8 @@ class RaceSyncService:
         results = races[0].get("QualifyingResults", [])
         count = 0
         for item in results:
-            driver = upsert_driver_from_jolpica(db, item.get("Driver", {}))
-            constructor = upsert_constructor_from_jolpica(db, item.get("Constructor", {}))
+            driver = self._upsert_driver_from_payload(db, item.get("Driver", {}))
+            constructor = self._upsert_constructor_from_payload(db, item.get("Constructor", {}))
             existing = (
                 db.query(QualifyingResult)
                 .filter_by(race_id=race.id, driver_id=driver.id)
@@ -218,6 +219,9 @@ class RaceSyncService:
                 count += 1
         return count
 
+    def _upsert_driver_from_payload(self, db: Session, payload: dict[str, Any]) -> Driver:
+        return upsert_driver_from_jolpica(db, payload)
+
     def _upsert_driver_from_openf1(self, db: Session, payload: dict[str, Any]) -> Driver:
         external_id = f"openf1:{payload.get('driver_number')}"
         full_name = payload.get("full_name") or external_id
@@ -237,6 +241,13 @@ class RaceSyncService:
         db.flush()
         return driver
 
+    def _upsert_constructor_from_payload(
+        self,
+        db: Session,
+        payload: dict[str, Any],
+    ) -> Constructor | None:
+        return upsert_constructor_from_jolpica(db, payload)
+
     def _best_practice_laps(self, laps: list[dict[str, Any]]) -> list[tuple[int, str]]:
         best_by_driver: dict[int, str] = {}
         for lap in laps:
@@ -249,3 +260,4 @@ class RaceSyncService:
             if current is None or float(lap_duration) < float(current):
                 best_by_driver[driver_number] = lap_time
         return sorted(best_by_driver.items(), key=lambda item: float(item[1]))
+

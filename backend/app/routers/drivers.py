@@ -9,15 +9,16 @@ from app.schemas.driver import DriverResponse
 from app.schemas.standings import DriverStandingResponse
 from app.utils.helpers import get_or_404
 
-
 router = APIRouter(prefix="/api/drivers", tags=["drivers"])
+
+_MAX_LIMIT = 200
 
 
 @router.get("", response_model=list[DriverResponse])
 def list_drivers(
     season: int | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=50, ge=1, le=_MAX_LIMIT),
     db: Session = Depends(get_db),
 ) -> list[Driver]:
     query = db.query(Driver)

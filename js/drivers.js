@@ -73,9 +73,9 @@ function renderStandingsPodium(container, top3) {
       ${order.map((d) => {
         const pos   = d.position;
         const cls   = rankClass[pos - 1] || '';
-        const name  = d.driver ? `${d.driver.first_name} ${d.driver.last_name}` : d.full_name || '—';
+        const name  = getDriverName(d, '—');
         const photo = d.driver?.photo_url || '';
-        const team  = d.constructor?.name || '—';
+        const team  = getConstructorName(d, '—');
         return `
           <div class="podium-card ${cls}">
             <div class="podium-rank">${pos}</div>
@@ -114,8 +114,8 @@ function renderStandingsTable(container, standings) {
           const pos  = d.position;
           const prev = d.previous_position;
           const dId  = d.driver_id;
-          const name = d.driver ? `${d.driver.first_name} ${d.driver.last_name}` : '—';
-          const team = d.constructor?.name || '—';
+          const name = getDriverName(d, '—');
+          const team = getConstructorName(d, '—');
           const photo = d.driver?.photo_url || '';
           const best = d.best_result || '—';
           return `
@@ -194,8 +194,9 @@ function renderDriversTable(drivers) {
       </thead>
       <tbody>
         ${drivers.map((d, i) => {
-          const name  = `${d.first_name || ''} ${d.last_name || ''}`.trim() || '—';
+          const name  = getDriverName(d, '—');
           const photo = d.photo_url || '';
+          const team  = getConstructorName(d, '—');
           return `
             <tr>
               <td class="muted">${d.driver_number || (i + 1)}</td>
@@ -208,8 +209,8 @@ function renderDriversTable(drivers) {
                   </div>
                 </div>
               </td>
-              <td data-col="name" data-value="${escapeHtml(d.last_name || '')}">${escapeHtml(d.nationality || '—')}</td>
-              <td class="muted">${escapeHtml(d.team?.name || d.constructor?.name || '—')}</td>
+              <td data-col="name" data-value="${escapeHtml(name)}">${escapeHtml(d.nationality || '—')}</td>
+              <td class="muted">${escapeHtml(team)}</td>
               <td>${getDriverStatusBadge(d.status)}</td>
               <td>
                 <div style="display:flex;gap:6px;justify-content:flex-end;">
@@ -230,7 +231,7 @@ function renderDriversTable(drivers) {
 function populateTeamFilter(drivers) {
   const sel = document.getElementById('filter-team');
   if (!sel) return;
-  const teams = [...new Set(drivers.map(d => d.team?.name || d.constructor?.name).filter(Boolean))].sort();
+  const teams = [...new Set(drivers.map(d => getConstructorName(d, '')).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">Все команды</option>' + teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
 }
 
@@ -240,10 +241,10 @@ function applyDriverFilters() {
   const status = document.getElementById('filter-status')?.value || '';
 
   const filtered = _allDrivers.filter(d => {
-    const name = `${d.first_name || ''} ${d.last_name || ''}`.toLowerCase();
+    const name = getDriverName(d, '').toLowerCase();
     if (query && !name.includes(query)) return false;
     if (team) {
-      const dTeam = d.team?.name || d.constructor?.name || '';
+      const dTeam = getConstructorName(d, '');
       if (dTeam !== team) return false;
     }
     if (status && d.status !== status) return false;

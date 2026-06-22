@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Гонщик — F1 Statistics Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="description" content="Профиль гонщика Формулы-1 — статистика, результаты, история.">
+  <meta name="theme-color" content="#081013">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="dns-prefetch" href="https://f1-dashboard-backend-ri9z.onrender.com">
+  <link rel="stylesheet" href="css/style.min.css">
 </head>
 <body>
 
@@ -75,11 +81,6 @@
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="js/api.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/main.js"></script>
-<script src="js/charts.js"></script>
 <script>
 // ============ driver-detail.js inlined ============
 
@@ -117,9 +118,9 @@ async function loadDriver(driverId, season) {
 }
 
 function renderDriverHero(container, driver, stats, season) {
-  const name    = `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || '—';
+  const name    = getDriverName(driver, '—');
   const photo   = driver.photo_url || '';
-  const team    = driver.constructor?.name || stats?.constructor?.name || '—';
+  const team    = getConstructorName(stats?.constructor || driver, '—');
   const pos     = stats?.position || '—';
   const points  = stats?.points || 0;
   const wins    = stats?.wins || 0;
