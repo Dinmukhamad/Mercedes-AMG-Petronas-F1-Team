@@ -28,10 +28,6 @@ _RUNNING: set[str] = set()
 _RUNNING_LOCK = Lock()
 
 _RETRY_AFTER_FAILURE = timedelta(minutes=10)
-_SEASONS_TTL = timedelta(days=7)
-_SEASON_DATA_TTL = timedelta(hours=12)
-_STANDINGS_TTL = timedelta(hours=2)
-_RACE_DETAILS_TTL = timedelta(hours=6)
 
 
 def _now() -> datetime:
@@ -55,8 +51,8 @@ class AutoSyncService:
     """DB-first lazy synchronization for public API reads.
 
     Public endpoints should return local database data. This service only calls
-    external APIs when a season/race has no local rows or its sync status is
-    stale, then the normal endpoint query reads the freshly saved rows.
+    external APIs when a season/race has no local rows, then the normal endpoint
+    query reads the freshly saved rows.
     """
 
     async def ensure_seasons(self, db: Session) -> bool:
@@ -64,7 +60,6 @@ class AutoSyncService:
         return await self._ensure(
             db,
             "seasons",
-            _SEASONS_TTL,
             missing,
             lambda: SeasonSyncService().sync_seasons(db),
         )
@@ -101,7 +96,6 @@ class AutoSyncService:
         return await self._ensure(
             db,
             f"races:{season}",
-            _SEASON_DATA_TTL,
             missing,
             lambda: RaceSyncService().sync_races(db, season),
         )
@@ -115,7 +109,6 @@ class AutoSyncService:
         return await self._ensure(
             db,
             f"drivers:{season}",
-            _SEASON_DATA_TTL,
             missing,
             lambda: DriverSyncService().sync_drivers(db, season),
         )
@@ -129,7 +122,6 @@ class AutoSyncService:
         return await self._ensure(
             db,
             f"constructors:{season}",
-            _SEASON_DATA_TTL,
             missing,
             lambda: ConstructorSyncService().sync_constructors(db, season),
         )
@@ -154,7 +146,6 @@ class AutoSyncService:
         return await self._ensure(
             db,
             f"standings:{season}",
-            _STANDINGS_TTL,
             missing_drivers or missing_constructors,
             lambda: StandingsSyncService().sync_standings(db, season),
         )
@@ -177,7 +168,6 @@ class AutoSyncService:
         return await self._ensure(
             db,
             f"race:{race_id}",
-            _RACE_DETAILS_TTL,
             missing_results or missing_qualifying,
             lambda: RaceSyncService().sync_race_details(db, race_id),
         )
@@ -208,11 +198,10 @@ class AutoSyncService:
         self,
         db: Session,
         name: str,
-        ttl: timedelta,
         missing: bool,
         sync_call: SyncCall,
     ) -> bool:
-        if not self._should_sync(db, name, ttl, missing):
+        if not self._should_sync(db, name, missing):
             return False
         return await self._run_guarded(name, sync_call)
 
@@ -220,20 +209,16 @@ class AutoSyncService:
         self,
         db: Session,
         name: str,
-        ttl: timedelta,
         missing: bool,
     ) -> bool:
+        if not missing:
+            return False
+
         status = db.query(SyncStatus).filter(SyncStatus.name == name).first()
         if status is None:
             return True
 
         updated_at = _aware(status.updated_at)
-        if missing:
-            return not self._recent(updated_at, _RETRY_AFTER_FAILURE)
-
-        if status.success and self._recent(updated_at, ttl):
-            return False
-
         return not self._recent(updated_at, _RETRY_AFTER_FAILURE)
 
     def _recent(self, value: datetime | None, window: timedelta) -> bool:
