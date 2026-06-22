@@ -34,17 +34,22 @@ function _setCached(key, data, ttl) {
   _cache.set(key, { data, ts: Date.now(), ttl });
 }
 
+function _isPrivatePath(path) {
+  return path.startsWith('/auth') || path.startsWith('/favorites') || path.startsWith('/admin');
+}
+
 // ── Core fetch ──────────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
-  const token = localStorage.getItem('f1_token');
+  const { skipAuth = false, ...fetchOptions } = options;
+  const token = skipAuth ? null : localStorage.getItem('f1_token');
 
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
+    ...(fetchOptions.headers || {}),
   };
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...fetchOptions, headers });
 
   if (res.status === 401) {
     localStorage.removeItem('f1_token');
@@ -63,15 +68,14 @@ async function apiFetch(path, options = {}) {
 
 // GET с кэшем (только безопасные запросы без токена не кэшируются)
 async function apiGet(path) {
-  const token = localStorage.getItem('f1_token');
-  // Персональные маршруты и защищённые — без кэша
-  if (token || path.startsWith('/auth') || path.startsWith('/favorites')) {
+  // Персональные и админские маршруты — без публичного кэша
+  if (_isPrivatePath(path)) {
     return apiFetch(path);
   }
   const cached = _getCached(path);
   if (cached !== null) return cached;
   if (_pending.has(path)) return _pending.get(path);
-  const request = apiFetch(path)
+  const request = apiFetch(path, { skipAuth: true })
     .then(data => {
       if (data !== undefined) _setCached(path, data, _getTTL(path));
       return data;
