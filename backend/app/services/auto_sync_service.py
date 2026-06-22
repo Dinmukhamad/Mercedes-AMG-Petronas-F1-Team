@@ -74,10 +74,35 @@ class AutoSyncService:
             season_item = self._create_season(db, season)
             changed = True
 
-        changed = await self.ensure_races(db, season) or changed
-        changed = await self.ensure_drivers(db, season) or changed
-        changed = await self.ensure_constructors(db, season) or changed
-        changed = await self.ensure_standings(db, season) or changed
+        races_missing = (
+            db.query(Race.id)
+            .filter(Race.season_id == season_item.id)
+            .first()
+            is None
+        )
+        standings_missing = (
+            db.query(DriverStanding.id)
+            .filter(DriverStanding.season_id == season_item.id)
+            .first()
+            is None
+            or db.query(ConstructorStanding.id)
+            .filter(ConstructorStanding.season_id == season_item.id)
+            .first()
+            is None
+        )
+
+        changed = await self._ensure(
+            db,
+            f"races:{season}",
+            races_missing,
+            lambda: RaceSyncService().sync_races(db, season),
+        ) or changed
+        changed = await self._ensure(
+            db,
+            f"standings:{season}",
+            standings_missing,
+            lambda: StandingsSyncService().sync_standings(db, season),
+        ) or changed
 
         if changed:
             clear_response_cache()
