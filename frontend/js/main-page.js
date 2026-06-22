@@ -8,13 +8,120 @@ async function loadHomeData() {
   // Обновляем отображение сезона в стате
   document.getElementById('stat-season').textContent = season;
 
-  await Promise.allSettled([
-    loadOverviewStats(season),
-    loadPodium(season),
-    loadFeaturedRace(season),
-    loadLatestVideos(season),
-    loadLatestPhotos(season),
-  ]);
+  try {
+    const data = await Home.get(season);
+    renderHomeData(data, season);
+  } catch (err) {
+    console.error('Ошибка быстрой загрузки главной:', err);
+    await Promise.allSettled([
+      loadOverviewStats(season),
+      loadPodium(season),
+      loadFeaturedRace(season),
+      loadLatestVideos(season),
+      loadLatestPhotos(season),
+    ]);
+  }
+}
+
+function renderHomeData(data, season) {
+  const races = data?.races || [];
+  const topDrivers = data?.top_drivers || [];
+  const topConstructors = data?.top_constructors || [];
+  const latestVideos = data?.latest_videos || [];
+  const latestPhotos = data?.latest_photos || [];
+  const stats = data?.stats || {};
+
+  document.getElementById('stat-season').textContent = season;
+  document.getElementById('stat-races').textContent = stats.races_count ?? races.length ?? '—';
+  document.getElementById('stat-drivers').textContent = stats.drivers_count ?? '—';
+  document.getElementById('stat-constructors').textContent = stats.constructors_count ?? '—';
+
+  if (topDrivers.length) {
+    const leader = topDrivers[0];
+    document.getElementById('stat-leader').textContent = getDriverLastName(leader, '—');
+    document.getElementById('stat-leader-pts').textContent = `${leader.points} очков`;
+  }
+
+  if (topConstructors.length) {
+    const team = topConstructors[0];
+    document.getElementById('stat-team-leader').textContent = getConstructorName(team, '—');
+    document.getElementById('stat-team-pts').textContent = `${team.points} очков`;
+  }
+
+  if (races.length) {
+    const now = new Date();
+    const upcoming = races.filter(r => r.status === 'upcoming' && new Date(r.race_date) > now);
+    const featured = upcoming.length ? upcoming[0] : races[races.length - 1];
+    if (featured) {
+      document.getElementById('stat-next-race').textContent = featured.name;
+      document.getElementById('stat-next-date').textContent = formatDateShort(featured.race_date);
+      renderFeaturedRace(featured);
+    }
+  } else {
+    showEmpty(document.getElementById('featured-race'), 'Гонки не найдены');
+  }
+
+  const podiumContainer = document.getElementById('podium-container');
+  if (topDrivers.length) {
+    renderPodium(podiumContainer, topDrivers);
+    renderTopDriversChart('chart-top-drivers', topDrivers);
+  } else {
+    showEmpty(podiumContainer, 'Нет данных', 'Таблица ещё не сформирована');
+  }
+  if (topConstructors.length) {
+    renderConstructorsChart('chart-constructors', topConstructors);
+  }
+
+  const videosContainer = document.getElementById('latest-videos');
+  if (latestVideos.length) {
+    videosContainer.innerHTML = latestVideos.slice(0, 4).map(v => renderVideoCard(v)).join('');
+  } else {
+    showEmpty(videosContainer, 'Видео не добавлены', '', '▶');
+  }
+
+  const photosContainer = document.getElementById('latest-photos');
+  if (latestPhotos.length) {
+    photosContainer.innerHTML = latestPhotos.slice(0, 6).map(p => `
+      <div class="gallery-item" onclick="openLightbox('${escapeHtml(p.image_url)}', '${escapeHtml(p.title || '')}')">
+        <img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.title || '')}" loading="lazy">
+        <div class="gallery-overlay">
+          <div class="gallery-caption">${escapeHtml(p.title || '')}</div>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    showEmpty(photosContainer, 'Фото не добавлены', '', '📷');
+  }
+}
+
+function renderFeaturedRace(race) {
+  const container = document.getElementById('featured-race');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="card" style="display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start;">
+      <div>
+        <div class="race-round">Этап ${race.round}</div>
+        <h3 style="font-family:var(--font-display);font-size:1.6rem;font-weight:800;text-transform:uppercase;margin-bottom:8px;">${escapeHtml(race.name)}</h3>
+        <div style="display:flex;align-items:center;gap:16px;color:var(--text-secondary);font-size:.85rem;margin-bottom:16px;flex-wrap:wrap;">
+          <span>📍 ${escapeHtml(race.city || '')}${race.country ? ', ' + race.country : ''}</span>
+          <span>🏟 ${escapeHtml(race.circuit_name || '')}</span>
+          <span>📅 ${formatDate(race.race_date)}</span>
+          ${race.race_date ? `<span>🕐 ${formatTime(race.race_date)}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          ${getRaceStatusBadge(race.status)}
+          <a href="/race-detail.html?id=${race.id}" class="btn btn-primary btn-sm">Подробнее →</a>
+        </div>
+      </div>
+      <div style="text-align:right;min-width:120px;">
+        ${race.status === 'upcoming'
+          ? `<div style="font-family:var(--font-display);font-size:2rem;font-weight:800;color:var(--teal);line-height:1;">${formatDate(race.race_date, {day:'2-digit',month:'short'})}</div><div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">Дата гонки</div>`
+          : `<div style="font-size:.8rem;color:var(--text-muted);">Статус</div>`
+        }
+      </div>
+    </div>
+  `;
 }
 
 async function loadOverviewStats(season) {

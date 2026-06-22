@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
+from app.core.response_cache import public_response_cache_middleware
 from app.database import Base, engine
 from app.models import TokenBlacklist
 from app.routers import (
@@ -16,6 +17,7 @@ from app.routers import (
     drivers,
     favorites,
     gallery,
+    home,
     races,
     seasons,
     standings,
@@ -39,6 +41,7 @@ allow_origins = settings.cors_origin_list
 if settings.app_env == "production":
     allow_origins = [origin for origin in allow_origins if origin != "*"]
 
+app.middleware("http")(public_response_cache_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
@@ -49,6 +52,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(home.router)
 app.include_router(seasons.router)
 app.include_router(drivers.router)
 app.include_router(constructors.router)

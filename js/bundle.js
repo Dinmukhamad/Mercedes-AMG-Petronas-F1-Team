@@ -6,6 +6,7 @@ const API_BASE = 'https://f1-dashboard-backend-ri9z.onrender.com/api';
 
 // ── In-memory кэш ──────────────────────────────────────────────
 const _cache = new Map();
+const _pending = new Map();
 const CACHE_TTL = {
   default:    5 * 60 * 1000,   // 5 минут — общий дефолт
   standings:  3 * 60 * 1000,   // 3 минуты — таблицы чемпионата
@@ -69,9 +70,15 @@ async function apiGet(path) {
   }
   const cached = _getCached(path);
   if (cached !== null) return cached;
-  const data = await apiFetch(path);
-  if (data !== undefined) _setCached(path, data, _getTTL(path));
-  return data;
+  if (_pending.has(path)) return _pending.get(path);
+  const request = apiFetch(path)
+    .then(data => {
+      if (data !== undefined) _setCached(path, data, _getTTL(path));
+      return data;
+    })
+    .finally(() => _pending.delete(path));
+  _pending.set(path, request);
+  return request;
 }
 
 function apiPost(path, body)   { return apiFetch(path, { method: 'POST',   body: JSON.stringify(body) }); }
@@ -105,6 +112,11 @@ const Auth = {
 const Seasons = {
   list: () => apiGet('/seasons'),
   get:  (year) => apiGet(`/seasons/${year}`),
+};
+
+// ── HOME ───────────────────────────────────────────────────────
+const Home = {
+  get: (season) => apiGet(`/home?season=${season}`),
 };
 
 // ── DRIVERS ─────────────────────────────────────────────────────
@@ -197,6 +209,8 @@ const Admin = {
   syncRace:         (id)     => apiPost(`/admin/sync/race/${id}`, {}),
   syncStatus:       ()       => apiFetch('/admin/sync/status'),
 };
+
+
 /**
  * auth.js — авторизация, JWT, состояние пользователя
  */
@@ -397,6 +411,8 @@ function requireAdmin() {
   }
   return true;
 }
+
+
 /**
  * main.js — общие утилиты, навигация, выбор сезона, toast
  */
@@ -817,6 +833,8 @@ async function initPage() {
 }
 
 document.addEventListener('DOMContentLoaded', initPage);
+
+
 /**
  * charts.js — все графики через Chart.js
  * Цвета: teal / silver / gold / graphite
